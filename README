@@ -1,0 +1,34 @@
+Diode_WasBuild.sh sript downloads and builds Classic McEliece's 4th Round submission for a post-quantum-cryptography algorithm for wasm32 from https://csrc.nist.gov/Projects/post-quantum-cryptography/round-4-submissions
+
+It also builds its dependacies, OpenSSL and XKCP/keccak for wasm32.
+
+At the end it will create the Classic_McEliece_wasm.tar.gz archive with the WebAssembly wasm, html and js. 
+
+Its intended use, at the moment, is to have access to the algorithm for the Diode messanger project.
+
+The included Makefile is used to build the wasm binary.
+
+To build for the first time, use:
+./Diode_WasBuild.sh -xtd
+
+This will build the wasm binary with the algorithm and its dependacies discussed above.
+
+The available script argument flags are:
+	-d ) to clone and build openssl and XKCP (dependacies)
+	-x ) to turn on -O3 compiler optimizations (recommended)
+	-t ) to call make with --trace
+	-c ) to call make clean for the algorithm build
+
+The necesary packages to build the McEliece's algorithm and its dependacies are (and maybe not lmited to):
+
+	emscripten (toolchain for wasm binaries)
+	make
+	xsltproc
+	perl
+	tar
+	git
+	wget
+
+As it stands this isn't fully tested, it's not intended for long term use or for production, just to start the project off.
+
+In addition some src files are provided with functions to be called from JavaScript, check the header files in include directory for documentation.
