@@ -2,31 +2,7 @@
 #define _DIODE_KEYGEN_H
 
 #include <stdint.h>
-
-/* Code Readability defines */
-#define OUT
-#define IN
-
-#define _DIODE_DEBUG_LVL 2
-
-#if defined(_DIODE_DEBUG_LVL) && _DIODE_DEBUG_LVL
-        #if _DIODE_DEBUG_LVL == 1
-        #define _DIODE_DEBUG_PRINT(x, args...) fprintf(stdout,(x) "\n", ##args)
-        #elif _DIODE_DEBUG_LVL == 2
-                #if defined(__STDC_VERSION__) && __STDC_VERSION__ >= 199901L
-                #define _DIODE_DEBUG_PRINT(x, args...) fprintf(stdout, "DEBUG: %s:%d:%s(): " "\n"x, \
-                __FILE__, __LINE__, __func__, ##args)
-                #else
-                #define _DIODE_DEBUG_PRINT(x, args...) fprintf(stdout, "DEBUG: %s:%d():" "\n" x, \
-                __FILE__, __LINE__, ##args)
-                #endif
-        #else
-        #error("Invalid _DIODE_DEBUG_LVL!!!")
-        #endif /* _DIODE_DEBUG_LVL */
-#else
-#define _DIODE_DEBUG_PRINT(x, args...)
-#endif
-
+#include <stdio.h>
 
 int _diode_Init();
 int _diode_Close();
@@ -76,12 +52,31 @@ void _diode_BinaryToBase64Str(const uint_least8_t* const IN mem, uint32_t size, 
  *
  * free() must be called to free the returned string memory by the caller.
  */
-uint_least8_t* _diode_SignString_wED25519PrivateBase64Key(const char* const IN msg, size_t msg_len,
-                const char* const IN b64_key);
+uint_least8_t* _diode_SignString_wED25519PrivateBase64Key(const unsigned char* const IN msg, size_t msg_len,
+                const unsigned char* const IN b64_key);
 
 /* The functions verifies the given base64 encoded signature (sig) against the given message (msg) with the base64 encoded (public) key (b64_key).
  * All strings must be null terminated.
  * returns 1 on success, 0 on failure */
-uint_fast8_t _diode_VerifySig_wED25519PublicBase64Key(const char* const IN sig, const char* const IN b64_key, const char* const IN msg);
+uint_fast8_t _diode_VerifySig_wED25519PublicBase64Key(const unsigned char* const IN sig, const unsigned char* const IN b64_key,
+		const unsigned char* const IN msg);
+
+
+/* The following functions return the size of McEliece's Public and Private Key size in b64 chars */
+uint_least32_t _diode_mceliece460896f_b64PublicKeySizeInChars(void);
+uint_least32_t _diode_mceliece460896f_b64PrivateKeySizeInChars(void);
+
+
+/* Generates a McEliece's 460896f Key pair, writes to prv_key and pub_key.
+ * prv_key and pub_key must have enough space for the base64 representation of the keys, plus a null terminator,
+ * _diode_mceliece460896f_b64PublicKeySizeInChars() and _diode_mceliece460896f_b64PrivateKeySizeInChars(), to get these key sizes,
+ * altough they should be the same value every time.
+ *
+ * Error Codes:
+ * -1 Couldn't allocate memory for the Private key
+ * -2 Couldn't allocate memory for the Public key
+ * -3 Couldn't generate Key Pair
+ */
+int_fast8_t _diode_mceliece460896f_Keygen(uint_least8_t* const OUT prv_key, uint_least8_t* const OUT pub_key);
 
 #endif /* _DIODE_KEYGEN_H */

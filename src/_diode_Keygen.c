@@ -1,32 +1,23 @@
-#include <stdlib.h>
+#include <_diode_Main.h>
 #include <_diode_Keygen.h>
-#include <openssl/dsa.h>
+#include <crypto_kem_mceliece460896f.h>
+
 #include <openssl/engine.h>
-#include <openssl/bio.h>
 #include <openssl/ssl.h>
-#include <openssl/param_build.h>
 #include <stdint.h>
 #include <string.h>
+#include <stdlib.h>
+#include <stdio.h>
 
 /* Defines for code readability */
 #define IN
 #define OUT
-#define ALREDY_OPEN
 
 /* This macro assumes there can't be an odd amount of nibbles representing a key,
  * returns base64 string size to represent the amount of data in bytes (size) given, without the null terminator */
 #define _DIODE_BASE64STR_SIZE_FROM_NBYTES(size) ((((size) / 3)*4) + ((((size) % 3) > 0)<<2))
 
 
-
-/* IMPORTANT, this is the file name where newly geneated keys with OpenSSL are written to,
- * The file is necessary to then be able to read the keys through OpenSSL functions.
- * The file is erased when new keys are generated and then written into a new file under the same name
- * To erase the file after key generation and reading, please call _diode_KeysFILE_destroy()
- */
-#ifdef _DIODE_DEBUG_LVL
-static const char *KEYS_FILE_NAME = "ir832nf4398#ymfew#$@g";
-#endif
 static uint_least8_t *PRIVATE_KEY;
 static uint_least8_t *PUBLIC_KEY;
 static size_t *PRIVATE_LEN;
@@ -34,8 +25,9 @@ static size_t *PUBLIC_LEN;
 
 int main(void)
 {
+	/*
 	_diode_Init();
-	char* msg = "Hello Wasm!";
+	unsigned char* msg = (unsigned char*) "Hello Wasm!";
 
 	_diode_ED25519_Keygen();
 
@@ -53,6 +45,19 @@ int main(void)
 
 	printf("Success? : %d\n", _diode_VerifySig_wED25519PublicBase64Key(dig, pub, msg));
 
+	free(prv);
+	free(pub);
+	
+	printf("PRV Size: %d | PUB Size: %d\n", _diode_mceliece460896f_b64PrivateKeySizeInChars() + 1, _diode_mceliece460896f_b64PublicKeySizeInChars() + 1);
+	prv = malloc(_diode_mceliece460896f_b64PrivateKeySizeInChars() + 1);
+	pub = malloc(_diode_mceliece460896f_b64PublicKeySizeInChars() + 1);
+
+	_diode_mceliece460896f_Keygen(prv, pub);
+	printf("Pub Key: %s\n", pub);
+	printf("Prv Key: %s\n", prv);
+
+	_diode_Close();
+	*/
 	return 0;
 }
 
@@ -78,6 +83,11 @@ int _diode_Close()
 	EVP_cleanup();
 	sk_SSL_COMP_free(SSL_COMP_get_compression_methods());
 	CRYPTO_cleanup_all_ex_data();
+
+	free(PUBLIC_KEY);
+	free(PRIVATE_KEY);
+	free(PUBLIC_LEN);
+	free(PRIVATE_LEN);
 
 	return 0;
 }
@@ -270,7 +280,7 @@ int _diode_ED25519_Keygen()
 int_least32_t _diode_Base64StrSizeInBinaryBytes(const uint_least8_t* const IN str)
 {
 	uint_least32_t size;
-	size = strlen(str);
+	size = strlen((char*)str);
 
 	#ifdef _DIODE_DEBUG_LVL
 	if(size % 4)
@@ -321,7 +331,7 @@ int  _diode_Base64Str_toBinary(const uint_least8_t* const IN str, uint_least8_t*
 
 	if(!str_size)
 	{	
-		str_size = strlen(str);
+		str_size = strlen((char*)str);
 	}
 
 	#ifdef _DIODE_DEBUG_LVL
@@ -391,8 +401,8 @@ int  _diode_Base64Str_toBinary(const uint_least8_t* const IN str, uint_least8_t*
  *
  * free() must be called to free the returned string memory by the caller.
  */
-uint_least8_t* _diode_SignString_wED25519PrivateBase64Key(const char* const IN msg, size_t msg_len,
-		const char* const IN b64_key)
+uint_least8_t* _diode_SignString_wED25519PrivateBase64Key(const unsigned char* const IN msg, size_t msg_len,
+		const unsigned char* const IN b64_key)
 {
 	size_t sig_len = 0;
 	uint_least8_t* OUT sig_str = NULL;
@@ -415,7 +425,7 @@ uint_least8_t* _diode_SignString_wED25519PrivateBase64Key(const char* const IN m
 	EVP_MD_CTX *md_ctx = EVP_MD_CTX_new();
 	if(!msg_len)
 	{
-		msg_len = strlen(msg);
+		msg_len = strlen((char*)msg);
 	}
 
 	EVP_DigestSignInit(md_ctx, NULL, NULL, NULL, prv_key);
@@ -440,7 +450,8 @@ uint_least8_t* _diode_SignString_wED25519PrivateBase64Key(const char* const IN m
 /* The functions verifies the given base64 encoded signature (sig) against the given message (msg) with the base64 encoded (public) key (b64_key).
  * All strings must be null terminated.
  * returns 1 on success, 0 on failure */
-uint_fast8_t _diode_VerifySig_wED25519PublicBase64Key(const char* const IN sig, const char* const IN b64_key, const char* const IN msg)
+uint_fast8_t _diode_VerifySig_wED25519PublicBase64Key(const unsigned char* const IN sig, const unsigned char* const IN b64_key,
+		const unsigned char* const IN msg)
 {
 	uint_least8_t success = 0; /* 0 is for failure */
 	uint_least8_t* key_mem;
@@ -468,7 +479,7 @@ uint_fast8_t _diode_VerifySig_wED25519PublicBase64Key(const char* const IN sig, 
 	/* Verification */
 	EVP_MD_CTX *md_ctx = EVP_MD_CTX_new();
 	EVP_DigestVerifyInit(md_ctx, NULL, NULL, NULL, pub_key);
-	success = EVP_DigestVerify(md_ctx, sig_mem, sig_n_bytes, msg, strlen(msg));
+	success = EVP_DigestVerify(md_ctx, sig_mem, sig_n_bytes, msg, strlen((char*)msg));
 
 	/* Cleanup */
 	free(key_mem);
@@ -477,4 +488,68 @@ uint_fast8_t _diode_VerifySig_wED25519PublicBase64Key(const char* const IN sig, 
 	EVP_PKEY_free(pub_key);
 
 	return success;
+}
+
+#define MCELIECE460896F_PUBLICKEYBYTES 524160
+#define MCELIECE460896F_SECRETKEYBYTES 13608
+#define crypto_kem_mceliece460896f_ref_CIPHERTEXTBYTES 156
+#define crypto_kem_mceliece460896f_ref_BYTES 32
+
+
+/* The following functions return the size of McEliece's Public and Private Key size in b64 chars */
+uint_least32_t _diode_mceliece460896f_b64PublicKeySizeInChars()
+{
+	return _DIODE_BASE64STR_SIZE_FROM_NBYTES(MCELIECE460896F_PUBLICKEYBYTES);
+}
+
+
+uint_least32_t _diode_mceliece460896f_b64PrivateKeySizeInChars()
+{
+	return _DIODE_BASE64STR_SIZE_FROM_NBYTES(MCELIECE460896F_SECRETKEYBYTES);
+}
+
+
+/* Generates a McEliece's 460896f Key pair, writes to prv_key and pub_key.
+ * prv_key and pub_key must have enough space for the base64 representation of the keys, plus a null terminator,
+ * _diode_mceliece460896f_b64PublicKeySizeInChars() and _diode_mceliece460896f_b64PrivateKeySizeInChars(), to get these key sizes,
+ * altough they should be the same value every time.
+ *
+ * Error Codes:
+ * -1 Couldn't allocate memory for the Private key
+ * -2 Couldn't allocate memory for the Public key
+ * -3 Couldn't generate Key Pair
+ */
+int_fast8_t _diode_mceliece460896f_Keygen(uint_least8_t* const OUT prv_key, uint_least8_t* const OUT pub_key)
+{
+	*PRIVATE_LEN = MCELIECE460896F_SECRETKEYBYTES;
+	*PUBLIC_LEN = MCELIECE460896F_PUBLICKEYBYTES;
+
+	if(PRIVATE_KEY)
+		free(PRIVATE_KEY);
+	if(PUBLIC_KEY)
+		free(PUBLIC_KEY);
+
+	PRIVATE_KEY = malloc(MCELIECE460896F_SECRETKEYBYTES);
+	if (!PRIVATE_KEY)
+	{
+		_DIODE_DEBUG_PRINT("Couldn't Allocate McEliece Private key!\n");
+		return -1;
+	}
+	PUBLIC_KEY = malloc(MCELIECE460896F_PUBLICKEYBYTES);
+	if (!PUBLIC_KEY)
+	{
+		_DIODE_DEBUG_PRINT("Couldn't Allocate McEliece Public key!\n");
+		return -2;
+	}
+
+	if(crypto_kem_mceliece460896f_ref_keypair(PUBLIC_KEY, PRIVATE_KEY))
+	{
+		_DIODE_DEBUG_PRINT("Couldn't generate McEliece key pair!!\n");
+		return -3;
+	}
+
+	_diode_BinaryToBase64Str(PRIVATE_KEY, MCELIECE460896F_SECRETKEYBYTES, prv_key);
+	_diode_BinaryToBase64Str(PUBLIC_KEY, MCELIECE460896F_PUBLICKEYBYTES, pub_key);
+
+	return 0;
 }
