@@ -1,6 +1,6 @@
 #!/bin/bash
 
-EXPORTED_FUNCS="'__diode_mceliece460896f_Keygen', '__diode_mceliece460896f_b64PublicKeySizeInChars', '__diode_mceliece460896f_b64PrivateKeySizeInChars', '__diode_VerifySig_wED25519PublicBase64Key', '__diode_SignString_wED25519PrivateBase64Key', '__diode_ED25519_CopyKeys_Base64Str', '__diode_ED25519_Base64PublicKeySize', '__diode_ED25519_Base64PrivateKeySize', '__diode_ED25519_Keygen', '__diode_Init', '__diode_Close', '_main', '_free', '_crypto_kem_mceliece460896f_ref_enc', '_crypto_kem_mceliece460896f_ref_dec', '_crypto_kem_mceliece460896f_ref_keypair', '_DEBUG_print'"
+EXPORTED_FUNCS="'__diode_mceliece460896f_Keygen', '__diode_mceliece460896f_PublicKeySizeInB64Chars', '__diode_mceliece460896f_PrivateKeySizeInB64Chars', '__diode_VerifySig_wED25519PublicBase64Key', '__diode_SignString_wED25519PrivateBase64Key', '__diode_ED25519_CopyKeys_Base64Str', '__diode_ED25519_PublicKeySizeInB64Chars', '__diode_ED25519_PrivateKeySizeInB64Chars', '__diode_ED25519_Keygen', '__diode_Init', '__diode_Close', '_main', '_free', '_DEBUG_print'"
 
 #Flags
 DEPS_Y="false"

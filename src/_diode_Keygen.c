@@ -13,9 +13,6 @@
 #define IN
 #define OUT
 
-/* This macro assumes there can't be an odd amount of nibbles representing a key,
- * returns base64 string size to represent the amount of data in bytes (size) given, without the null terminator */
-#define _DIODE_BASE64STR_SIZE_FROM_NBYTES(size) ((((size) / 3)*4) + ((((size) % 3) > 0)<<2))
 
 
 static uint_least8_t *PRIVATE_KEY;
@@ -31,8 +28,8 @@ int main(void)
 
 	_diode_ED25519_Keygen();
 
-	uint_least8_t* prv = malloc(_diode_ED25519_Base64PrivateKeySize() + 1);
-	uint_least8_t* pub = malloc(_diode_ED25519_Base64PublicKeySize() + 1);
+	uint_least8_t* prv = malloc(_diode_ED25519_PrivateKeySizeInB64Chars() + 1);
+	uint_least8_t* pub = malloc(_diode_ED25519_PublicKeySizeInB64Chars() + 1);
 	_diode_ED25519_CopyKeys_Base64Str(prv, pub);
 
 	printf("Key: %s\n", prv);
@@ -48,16 +45,17 @@ int main(void)
 	free(prv);
 	free(pub);
 	
-	printf("PRV Size: %d | PUB Size: %d\n", _diode_mceliece460896f_b64PrivateKeySizeInChars() + 1, _diode_mceliece460896f_b64PublicKeySizeInChars() + 1);
-	prv = malloc(_diode_mceliece460896f_b64PrivateKeySizeInChars() + 1);
-	pub = malloc(_diode_mceliece460896f_b64PublicKeySizeInChars() + 1);
+	printf("PRV Size: %d | PUB Size: %d\n", _diode_mceliece460896f_PrivateKeySizeInB64Chars() + 1,
+			_diode_mceliece460896f_PublicKeySizeInB64Chars() + 1);
+	prv = malloc(_diode_mceliece460896f_PrivateKeySizeInB64Chars() + 1);
+	pub = malloc(_diode_mceliece460896f_PublicKeySizeInB64Chars() + 1);
 
 	_diode_mceliece460896f_Keygen(prv, pub);
 	printf("Pub Key: %s\n", pub);
 	printf("Prv Key: %s\n", prv);
 
 	_diode_Close();
-	*/
+	*/	
 	return 0;
 }
 
@@ -92,28 +90,17 @@ int _diode_Close()
 	return 0;
 }
 
-/* This function assumes there can't be an odd amount of nibbles representing a key,
- * returns base64 string size to represent the private key binary value, without the null terminator */
-int_least32_t _diode_ED25519_Base64PrivateKeySize(void)
-{
-	/* Add 4/3 more chars to fit sets of 3 chars with 6 bit word Base64 chars,
-	 * if there is a remainder, word misalignment, add 4 more characters for padding chars and extra necessary space */
-	return (((*PRIVATE_LEN / 3)*4) + (((*PRIVATE_LEN % 3) > 0)<<2));
-}
 
-/* This function assumes there can't be an odd amount of nibbles representing a key,
- * returns base64 string size to represent the public key binary value, without the null terminator */
-int_least32_t _diode_ED25519_Base64PublicKeySize(void)
-{
-	return (((*PUBLIC_LEN / 3)*4) + (((*PUBLIC_LEN % 3) > 0)<<2));
-}
-
-
-/* Function writes the given binary data (mem) to str as a base64 sting
+/* Function writes the given binary data (mem) to str as a base64 sting. If either mem or str is NULL, this function does nothing
  * It is the caller's responsability to make sure str has enough space for the binary data in b64 format + a null terminator
  * To find the b64 str size without the null terminator use _DIODE_BASE64STR_SIZE_FROM_NBYTES */
 void _diode_BinaryToBase64Str(const uint_least8_t* const IN mem, uint32_t size, uint_least8_t* const OUT str)
 {
+	if(!mem | !str)
+	{
+		return;
+	}
+
 	uint_least8_t remainder;
 	uint_least8_t above0;
 	uint_least8_t above1;
@@ -159,13 +146,151 @@ void _diode_BinaryToBase64Str(const uint_least8_t* const IN mem, uint32_t size, 
 }
 
 
+#define BASE64_TOBIN(x) (uint_least8_t)(((x) > 96)*((x) - 71) | \
+			((((x)>64) & (uint_least8_t)((x)<91))*((x) - 65)) | \
+			((((x)>47) & (uint_least8_t)((x)<58))*((x) + 4)) | \
+			(((x)=='+')*62) | (((x)=='/')*63))
+
+/* Convertes a base64 string (str) to its binary representation, writing it in mem.
+ * It is the Caller's responsability to ensure mem has anough space for the binary,
+ * to find this necessary size for a given b64 string, you can use _diode_Base64StrSizeInBinaryBytes() or _diode_Base64StrSizeInBinaryBytes_wStrSize()
+ * str_size is needed if the string is not null terminated, if it is, str_size must be 0 . The str_size must be a multiple of four.
+ *
+ * Error Codes:
+ * -1 str_size isn't a multiple of 4
+ * */
+int_fast32_t  _diode_Base64StrToBinary(const uint_least8_t* const IN str, uint_least8_t* const OUT mem, int_least32_t str_size)
+{
+	uint_fast32_t bytes;
+	uint_fast8_t n_pads;
+	uint_fast8_t c[4];
+	uint_fast8_t is2;
+	uint_fast8_t is1;
+	uint_fast8_t above0;
+
+	if(!str_size)
+	{	
+		str_size = strlen((char*)str);
+	}
+
+	if(str_size % 4)
+	{
+		_DIODE_DEBUG_PRINT("Base64 String size isn't a multiple of 4!!!!! _diode_Base64StrToBinary() expects so.");
+		return -1;
+	}
+
+	n_pads = (str[str_size-1] == '=') << (str[str_size-2] == '=');
+	is2 = (n_pads > 1);
+	is1 = (n_pads & 1);
+	above0 = (n_pads > 0);
+	bytes = (str_size / 4)*3 - n_pads - 1; /* 0 index ready */
+	str_size = str_size - n_pads - 1; /* 0 index ready and minus the '=' chars */
+
+	/* Base64 string to binary */
+	/*The branching stays here as a comment for code readability, code below does the same
+	if(n_pads & 1)
+	{
+		c[0] = (unsigned char)BASE64_TOBIN(str[str_size]); str_size--;
+		c[1] = (unsigned char)BASE64_TOBIN(str[str_size]); str_size--;
+		c[2] = (unsigned char)BASE64_TOBIN(str[str_size]); str_size--;
+		mem[bytes--] = (unsigned char)(c[0] >> 2) | ((c[1]&0xF) << 4);
+		mem[bytes--] = (unsigned char)(c[1] >> 4) | (c[2] << 2);
+	}
+	else if(n_pads)
+	{
+		c[0] = (unsigned char)BASE64_TOBIN(str[str_size]); str_size--;
+		c[1] = (unsigned char)BASE64_TOBIN(str[str_size]); str_size--;
+		mem[bytes--] = (unsigned char)(c[0] >> 4) | (c[1] << 2);
+	}
+	*/
+	
+	c[0] = (unsigned char)BASE64_TOBIN(str[str_size]);
+	c[1] = (unsigned char)BASE64_TOBIN(str[str_size-1]);
+	c[2] = BASE64_TOBIN(str[str_size-2]);
+	str_size = str_size - ((above0<<1) | is1);
+	
+	mem[bytes-is1] = (c[1] >> 4) | (c[2] << 2);
+	mem[bytes] = (c[0] >> ((above0 << is2)<<1)) | ( (c[1]&(0xF | (0xF0 * is2))) << ((is1<<2) | (is2<<1)) );
+	bytes = bytes - (above0 << is1);
+	
+	/* Convert the remaining word aligned bytes */
+	while(str_size > 0)
+	{
+		c[0] = (unsigned char)BASE64_TOBIN(str[str_size]); str_size--;
+		c[1] = (unsigned char)BASE64_TOBIN(str[str_size]); str_size--;
+		c[2] = (unsigned char)BASE64_TOBIN(str[str_size]); str_size--;
+		c[3] = (unsigned char)BASE64_TOBIN(str[str_size]); str_size--;
+		
+		mem[bytes--] = (unsigned char)c[0] | ((c[1]&0x3) << 6);
+		mem[bytes--] = (unsigned char)(c[1] >> 2) | ((c[2]&0xF) << 4);
+		mem[bytes--] = (unsigned char)((c[2] >> 4)&3) | ((c[3]&0x3F) << 2);
+	}
+
+	return 0;
+}
+
+
+/* This function returns the amount of bytes (of 8bits size) necessary to represent the given string of base64.
+ * If the string is not null terminated a size for the string must be given, otherwise size must be 0. 
+ * This funcion expects the string to be UTF8 / ASCCII.
+ * This function expects the size to ALWAYS be a multiple of four.
+ * Returns the amount of bytes needed to represent the base64 string in binary, or a negative error code
+ *
+ * Error Codes
+ * -1 The given string size isn't a multiple of 4.
+ */
+int_least32_t _diode_AmountOfBytesFromB64Str(const uint_least8_t* const IN str, uint_least32_t size)
+{
+	if(!size)
+		size = strlen((char*)str);
+
+	if(size % 4)
+	{
+		_DIODE_DEBUG_PRINT("Given Base64 String size isn't a multiple of 4!!!!! _diode_AmountOfBytesFromB64Str() expects so.");
+		return -1;
+	}
+
+	return (size / 4)*3 - ((str[size-1] == '=') + (str[size-2] == '=')); 
+}
+
+
+/* This function assumes there can't be an odd amount of nibbles representing a key,
+ * returns base64 string size to represent the private key binary value, without the null terminator */
+uint_least32_t _diode_ED25519_PrivateKeySizeInB64Chars(void)
+{
+	/* Add 4/3 more chars to fit sets of 3 chars with 6 bit word Base64 chars,
+	 * if there is a remainder, word misalignment, add 4 more characters for padding chars and extra necessary space */
+	return (((*PRIVATE_LEN / 3)*4) + (((*PRIVATE_LEN % 3) > 0)<<2));
+}
+
+/* This function assumes there can't be an odd amount of nibbles representing a key,
+ * returns base64 string size to represent the public key binary value, without the null terminator */
+uint_least32_t _diode_ED25519_PublicKeySizeInB64Chars(void)
+{
+	return (((*PUBLIC_LEN / 3)*4) + (((*PUBLIC_LEN % 3) > 0)<<2));
+}
+
 /* This function converts the keys binary to base64 strings and copies them over to prvk for the private key and pubk for the public key.
+ * If there are no generated keys, it will do nothing. At the end it will free the Keys memory.
  * It is the caller's responsibility to make sure the strings have enough space for the base64 strings + a null terminator
- * The space for these strings minus the null terminator can be found with _diode_ED25519_Base64PublicKeySize() and _diode_ED25519_Base64PrivateKeySize().
+ * The space for these strings minus the null terminator can be found with _diode_ED25519_PrivateKeySizeInB64Chars()
+ * and _diode_ED25519_PublicteKeySizeInB64Chars.
  * It is the CALLER'S RESPONSIBILITY to always free the memory of *all* pointers, or make sure they are freed.
  */
-int _diode_ED25519_CopyKeys_Base64Str(unsigned char* const OUT prvk, unsigned char* const OUT pubk)
+void _diode_ED25519_CopyKeys_Base64Str(unsigned char* const OUT prvk, unsigned char* const OUT pubk)
 {
+	if(!PRIVATE_KEY)
+	{
+		_DIODE_DEBUG_PRINT("Tried to copy Private ED25519 key when none was generated!\n");
+		return;
+	}
+
+	if(!PUBLIC_KEY)
+	{
+		_DIODE_DEBUG_PRINT("Tried to copy Public ED25519 key when none was generated!\n");
+		return;
+	}
+
 	uint_least8_t remainder;
 	uint_least8_t above0;
 	uint_least8_t above1;
@@ -242,15 +367,37 @@ int _diode_ED25519_CopyKeys_Base64Str(unsigned char* const OUT prvk, unsigned ch
 			((pubk[i]==62)*43) | ((pubk[i]==63)*47);
 	} while(i);
 
-	return 0;
+	/* Free Keys memory */
+
+	free(PUBLIC_KEY);
+	free(PRIVATE_KEY);
+	PUBLIC_KEY = NULL;
+	PRIVATE_KEY = NULL;
+	
+	*PRIVATE_LEN = 0;
+	*PUBLIC_LEN = 0;
 }
 
 
-/* Generates a random pair of ED25519 Keys, deletes old ones if still in memory */
-int _diode_ED25519_Keygen()
+/* Generates a random pair of ED25519 Keys, deletes old ones if still in memory
+ *
+ * Error Codes:
+ * -1 Couldn't create the object with the generated keys
+ * -2 Couldn't allocate memory for PRIVATE_KEY
+ * -3 Couldn't allocate memory for PUBLIC_KEY
+ * -4 Couldn't get private key binary
+ * -5 Couldn't get public key binary
+ */
+int_fast32_t _diode_ED25519_Keygen()
 {
 	EVP_PKEY *keys;
 	keys = EVP_PKEY_Q_keygen(NULL,NULL,"ED25519");
+
+	if(!keys)
+	{
+		_DIODE_DEBUG_PRINT("Couldn't create EVP_PKEY object, ED25519 keys couldn't be generated!\n");
+		return -1;
+	}
 
 	#ifdef _DIODE_DEBUG_LVL
 	EVP_PKEY_print_private_fp(stdout, keys, 0, NULL);
@@ -259,138 +406,63 @@ int _diode_ED25519_Keygen()
 	/* Getting lenght sizes */
 	EVP_PKEY_get_raw_private_key(keys, NULL, PRIVATE_LEN);
 	EVP_PKEY_get_raw_public_key(keys, NULL, PUBLIC_LEN);
+	
+	if(PRIVATE_KEY)
+		free(PRIVATE_KEY);
+	if(PUBLIC_KEY)
+		free(PUBLIC_KEY);
 
-	free(PRIVATE_KEY);
-	free(PUBLIC_KEY);
 	PUBLIC_KEY = malloc(sizeof(char) * (*PUBLIC_LEN));
 	PRIVATE_KEY = malloc(sizeof(char) * (*PRIVATE_LEN));
 
+	if(!PRIVATE_KEY)
+	{
+		if(keys)
+			EVP_PKEY_free(keys);
+
+		_DIODE_DEBUG_PRINT("Couldn't allocate memory for PRIVATE_KEY!\n");
+		return -2;
+	}
+	if(!PUBLIC_KEY)
+	{
+		if(keys)
+			EVP_PKEY_free(keys);
+
+		_DIODE_DEBUG_PRINT("Couldn't allocate memory for PUBLIC_KEY!\n");
+		return -3;
+	}
+
 	/* Writing binary of keys */
-	EVP_PKEY_get_raw_private_key(keys, PRIVATE_KEY, PRIVATE_LEN);
-        EVP_PKEY_get_raw_public_key(keys, PUBLIC_KEY, PUBLIC_LEN);
+	if(EVP_PKEY_get_raw_private_key(keys, PRIVATE_KEY, PRIVATE_LEN))
+	{
+		if(PRIVATE_KEY)
+			free(PRIVATE_KEY);
+		if(PUBLIC_KEY)
+			free(PUBLIC_KEY);
+		if(keys)
+			EVP_PKEY_free(keys);
+
+		_DIODE_DEBUG_PRINT("Couldn't get Private key binary!\n");
+		return -4;
+	}
+
+        if(EVP_PKEY_get_raw_public_key(keys, PUBLIC_KEY, PUBLIC_LEN))
+	{
+		if(PRIVATE_KEY)
+			free(PRIVATE_KEY);
+		if(PUBLIC_KEY)
+			free(PUBLIC_KEY);
+		if(keys)
+			EVP_PKEY_free(keys);
+
+		_DIODE_DEBUG_PRINT("Couldn't get Public key binary!\n");
+		return -5;
+	}
 
 	EVP_PKEY_free(keys);
 
 	return 0;
 }
-
-/* This functions expects the string to be null terminated and to be UTF8 / ASCCII.
- * This function also expects for the amount of chars from the base64 string to ALWAYS be a multiple of four.
- * Returs the amount of bytes needed to represent the base64 string in binary */
-int_least32_t _diode_Base64StrSizeInBinaryBytes(const uint_least8_t* const IN str)
-{
-	uint_least32_t size;
-	size = strlen((char*)str);
-
-	#ifdef _DIODE_DEBUG_LVL
-	if(size % 4)
-	{
-		_DIODE_DEBUG_PRINT("Given Base64 String size isn't a multiple of 4!!!!! _diode_Base64StrSizeInBinaryBytes() expects so.");
-	}
-	#endif
-
-
-	return (size / 4)*3 - ((str[size-1] == '=') + (str[size-2] == '=')); 
-}
-
-/* This functions doesn't expect/need the string to be null terminated.
- * This funcion expects the string to be UTF8 / ASCCII.
- * This function expects the size to ALWAYS be a multiple of four.
- * Returns the amount of bytes needed to represent the base64 string in binary */
-int_least32_t _diode_Base64StrSizeInBinaryBytes_wStrSize(const char* const IN str, const uint_least32_t size)
-{
-	#ifdef _DIODE_DEBUG_LVL
-	if(size % 4)
-	{
-		_DIODE_DEBUG_PRINT("Given Base64 String size isn't a multiple of 4!!!!! _diode_Base64StrSizeInBinaryBytes_wStrSize() expects so.");
-	}
-	#endif
-
-	return (size / 4)*3 - ((str[size-1] == '=') + (str[size-2] == '=')); 
-}
-
-
-#define BASE64_TOBIN(x) (uint_least8_t)(((x) > 96)*((x) - 71) | \
-			((((x)>64) & (uint_least8_t)((x)<91))*((x) - 65)) | \
-			((((x)>47) & (uint_least8_t)((x)<58))*((x) + 4)) | \
-			(((x)=='+')*62) | (((x)=='/')*63))
-
-/* Convertes a base64 string (str) to its binary representation, writing it in mem.
- * It is the Caller's responsability to ensure mem has anough space for the binary,
- * to find this necessary size for a given b64 string, you can use _diode_Base64StrSizeInBinaryBytes() or _diode_Base64StrSizeInBinaryBytes_wStrSize()
- * str_size is needed if the string is not null terminated, if it is, str_size must be 0 . The str_size must be a multiple of four.
- * */
-int  _diode_Base64Str_toBinary(const uint_least8_t* const IN str, uint_least8_t* const OUT mem, int_least32_t str_size)
-{
-	uint_fast32_t bytes;
-	uint_fast8_t n_pads;
-	uint_fast8_t c[4];
-	uint_fast8_t is2;
-	uint_fast8_t is1;
-	uint_fast8_t above0;
-
-	if(!str_size)
-	{	
-		str_size = strlen((char*)str);
-	}
-
-	#ifdef _DIODE_DEBUG_LVL
-	if(str_size % 4)
-	{
-		_DIODE_DEBUG_PRINT("Base64 String size isn't a multiple of 4!!!!! _diode_Base64Str_toBinary() expects so.");
-	}
-	#endif
-
-	n_pads = (str[str_size-1] == '=') << (str[str_size-2] == '=');
-	is2 = (n_pads > 1);
-	is1 = (n_pads & 1);
-	above0 = (n_pads > 0);
-	bytes = (str_size / 4)*3 - n_pads - 1; /* 0 index ready */
-	str_size = str_size - n_pads - 1; /* 0 index ready and minus the '=' chars */
-
-	/* Base64 string to binary */
-	/*The branching stays here as a comment for code readability, code below does the same
-	if(n_pads & 1)
-	{
-		c[0] = (unsigned char)BASE64_TOBIN(str[str_size]); str_size--;
-		c[1] = (unsigned char)BASE64_TOBIN(str[str_size]); str_size--;
-		c[2] = (unsigned char)BASE64_TOBIN(str[str_size]); str_size--;
-		mem[bytes--] = (unsigned char)(c[0] >> 2) | ((c[1]&0xF) << 4);
-		mem[bytes--] = (unsigned char)(c[1] >> 4) | (c[2] << 2);
-	}
-	else if(n_pads)
-	{
-		c[0] = (unsigned char)BASE64_TOBIN(str[str_size]); str_size--;
-		c[1] = (unsigned char)BASE64_TOBIN(str[str_size]); str_size--;
-		mem[bytes--] = (unsigned char)(c[0] >> 4) | (c[1] << 2);
-	}
-	*/
-	
-	c[0] = (unsigned char)BASE64_TOBIN(str[str_size]);
-	c[1] = (unsigned char)BASE64_TOBIN(str[str_size-1]);
-	c[2] = BASE64_TOBIN(str[str_size-2]);
-	str_size = str_size - ((above0<<1) | is1);
-	
-	mem[bytes-is1] = (c[1] >> 4) | (c[2] << 2);
-	mem[bytes] = (c[0] >> ((above0 << is2)<<1)) | ( (c[1]&(0xF | (0xF0 * is2))) << ((is1<<2) | (is2<<1)) );
-	bytes = bytes - (above0 << is1);
-	
-	/* Convert the remaining word aligned bytes */
-	while(str_size > 0)
-	{
-		c[0] = (unsigned char)BASE64_TOBIN(str[str_size]); str_size--;
-		c[1] = (unsigned char)BASE64_TOBIN(str[str_size]); str_size--;
-		c[2] = (unsigned char)BASE64_TOBIN(str[str_size]); str_size--;
-		c[3] = (unsigned char)BASE64_TOBIN(str[str_size]); str_size--;
-		
-		mem[bytes--] = (unsigned char)c[0] | ((c[1]&0x3) << 6);
-		mem[bytes--] = (unsigned char)(c[1] >> 2) | ((c[2]&0xF) << 4);
-		mem[bytes--] = (unsigned char)((c[2] >> 4)&3) | ((c[3]&0x3F) << 2);
-	}
-
-	return 0;
-}
-
 
 
 /* Generates a signature from a given string of a private key in base64 chars and a message,
@@ -411,9 +483,9 @@ uint_least8_t* _diode_SignString_wED25519PrivateBase64Key(const unsigned char* c
 	EVP_PKEY *prv_key = NULL;
 
 	/* Base64 key string to binary conversion */
-	uint_fast32_t n_bytes = _diode_Base64StrSizeInBinaryBytes(b64_key);
+	uint_fast32_t n_bytes = _diode_AmountOfBytesFromB64Str(b64_key, 0);
 	mem = malloc(n_bytes);
-	_diode_Base64Str_toBinary(b64_key, mem, 0);
+	_diode_Base64StrToBinary(b64_key, mem, 0);
 
 	prv_key = EVP_PKEY_new_raw_private_key(EVP_PKEY_ED25519, NULL, mem, n_bytes);
 
@@ -459,14 +531,14 @@ uint_fast8_t _diode_VerifySig_wED25519PublicBase64Key(const unsigned char* const
 	EVP_PKEY *pub_key;
 
 	/* Base64 key string to binary conversion */
-	uint_fast32_t key_n_bytes = _diode_Base64StrSizeInBinaryBytes(b64_key);
+	uint_fast32_t key_n_bytes = _diode_AmountOfBytesFromB64Str(b64_key,0);
 	key_mem = malloc(key_n_bytes);
-	_diode_Base64Str_toBinary(b64_key, key_mem, 0);
+	_diode_Base64StrToBinary(b64_key, key_mem, 0);
 
 	/* Base64 signature to binary conversion */	
-	uint_fast32_t sig_n_bytes = _diode_Base64StrSizeInBinaryBytes(sig);
+	uint_fast32_t sig_n_bytes = _diode_AmountOfBytesFromB64Str(sig,0);
 	sig_mem = malloc(sig_n_bytes);
-	_diode_Base64Str_toBinary(sig, sig_mem, 0);
+	_diode_Base64StrToBinary(sig, sig_mem, 0);
 
 	/* Public Key Creation */
 	pub_key = EVP_PKEY_new_raw_public_key(EVP_PKEY_ED25519, NULL, key_mem, key_n_bytes);
@@ -490,20 +562,27 @@ uint_fast8_t _diode_VerifySig_wED25519PublicBase64Key(const unsigned char* const
 	return success;
 }
 
+#ifndef MCELIECE460896F_PUBLICKEYBYTES
 #define MCELIECE460896F_PUBLICKEYBYTES 524160
+#endif
+
+#ifndef MCELIECE460896F_SECRETKEYBYTES
 #define MCELIECE460896F_SECRETKEYBYTES 13608
+#endif
+
+/*
 #define crypto_kem_mceliece460896f_ref_CIPHERTEXTBYTES 156
 #define crypto_kem_mceliece460896f_ref_BYTES 32
-
+*/
 
 /* The following functions return the size of McEliece's Public and Private Key size in b64 chars */
-uint_least32_t _diode_mceliece460896f_b64PublicKeySizeInChars()
+uint_least32_t _diode_mceliece460896f_PublicKeySizeInB64Chars(void)
 {
 	return _DIODE_BASE64STR_SIZE_FROM_NBYTES(MCELIECE460896F_PUBLICKEYBYTES);
 }
 
 
-uint_least32_t _diode_mceliece460896f_b64PrivateKeySizeInChars()
+uint_least32_t _diode_mceliece460896f_PrivateKeySizeInB64Chars(void)
 {
 	return _DIODE_BASE64STR_SIZE_FROM_NBYTES(MCELIECE460896F_SECRETKEYBYTES);
 }
