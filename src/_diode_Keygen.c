@@ -13,8 +13,6 @@
 #define IN
 #define OUT
 
-
-
 static uint_least8_t *PRIVATE_KEY;
 static uint_least8_t *PUBLIC_KEY;
 static size_t *PRIVATE_LEN;
@@ -433,7 +431,7 @@ int_fast32_t _diode_ED25519_Keygen()
 	}
 
 	/* Writing binary of keys */
-	if(EVP_PKEY_get_raw_private_key(keys, PRIVATE_KEY, PRIVATE_LEN))
+	if(!EVP_PKEY_get_raw_private_key(keys, PRIVATE_KEY, PRIVATE_LEN))
 	{
 		if(PRIVATE_KEY)
 			free(PRIVATE_KEY);
@@ -446,7 +444,7 @@ int_fast32_t _diode_ED25519_Keygen()
 		return -4;
 	}
 
-        if(EVP_PKEY_get_raw_public_key(keys, PUBLIC_KEY, PUBLIC_LEN))
+        if(!EVP_PKEY_get_raw_public_key(keys, PUBLIC_KEY, PUBLIC_LEN))
 	{
 		if(PRIVATE_KEY)
 			free(PRIVATE_KEY);
