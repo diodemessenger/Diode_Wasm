@@ -1,6 +1,6 @@
 #!/bin/bash
 
-EXPORTED_FUNCS="'__diode_mceliece460896f_Keygen', '__diode_mceliece460896f_PublicKeySizeInB64Chars', '__diode_mceliece460896f_PrivateKeySizeInB64Chars', '__diode_VerifySig_wED25519PublicBase64Key', '__diode_SignString_wED25519PrivateBase64Key', '__diode_ED25519_CopyKeys_Base64Str', '__diode_ED25519_PublicKeySizeInB64Chars', '__diode_ED25519_PrivateKeySizeInB64Chars', '__diode_ED25519_Keygen', '__diode_Init', '__diode_Close', '_main', '_free', '_DEBUG_print'"
+EXPORTED_FUNCS="'__diode_RSA_encapsulate', '__diode_mceliece460896f_Keygen', '__diode_RSA_Keygen', '__diode_VerifySig_wED25519PublicBase64Key', '__diode_SignString_wED25519PrivateBase64Key', '__diode_ED25519_Keygen', '__diode_Init', '__diode_Close', '_main', '_malloc', '_free', '_DEBUG_print'"
 
 #Flags
 DEPS_Y="false"
@@ -167,10 +167,10 @@ export TARGET_DIR=$MCELIECE_PWD
 
 export SRC_DIRS="$MAIN_WD/src $MCELIECE_PWD $MCELIECE_PWD/nist $MCELIECE_PWD/subroutines "
 
-export INC_DIRS="$MAIN_WD/dependacies/include $MCELIECE_PWD $MCELIECE_PWD/nist $MCELIECE_PWD/subroutines $MAIN_WD/include"
+export INC_DIRS="$MAIN_WD/dependacies/include $MCELIECE_PWD $MCELIECE_PWD/nist $MCELIECE_PWD/subroutines $MAIN_WD/include "
 
 
-export LFLAGS="-s LLD_REPORT_UNDEFINED -L$MAIN_WD/dependacies/lib -s \"EXPORTED_RUNTIME_METHODS=['ccall', 'cwrap']\" -s \"EXPORTED_FUNCTIONS=[$EXPORTED_FUNCS]\" -lssl -lkeccak -lcrypto -ldl"
+export LFLAGS="-s LLD_REPORT_UNDEFINED -L$MAIN_WD/dependacies/lib -s \"EXPORTED_RUNTIME_METHODS=['ccall', 'cwrap', 'UTF8ToString', 'getValue']\" -s \"EXPORTED_FUNCTIONS=[$EXPORTED_FUNCS]\" -lssl -lkeccak -lcrypto -ldl "
 
 KATNUM_I=$(cat $MCELIECE_PWD/KATNUM)
 
