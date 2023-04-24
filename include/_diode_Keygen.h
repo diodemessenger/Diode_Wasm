@@ -121,41 +121,55 @@ extern int_fast8_t EMSCRIPTEN_KEEPALIVE _diode_VerifySig_wED25519PublicBase64Key
 extern int_fast8_t EMSCRIPTEN_KEEPALIVE _diode_mceliece460896f_Keygen(uint_least8_t** OUT pub_key_str, uint_least32_t* OUT pub_n_chars,
                 uint_least8_t** OUT prv_key_str, uint_least32_t* OUT prv_n_chars);
 
-
-/* This function Generates a random pair of RSA Keys, where the n and e parameters are the public key and the d parameter is the private key.
- * bits determines the bit size, must be a multiple of 1024 or 0 for default of 2048 bits.
- * *rsa_n_str, rsa_e_str and rsa_d_str will hold the n,e,d parameters in b64 format.
+/* This function Generates the RSA parameters, where the n and e parameters are the public key and all of them the private key (minimum needed are n,e,d)
+ * bits determines the bit size, must be higher than 512, a multiple of 512 or 0 for default of 2048 bits.
+ * primes determines the amount of prime factors to be selected, it must be between 2 and 10, or 0 for a default of 2 primes,
+ * altough with higher bit sizes less primes are suported, and if too high key generation will fail!
+ * e input is the public exponent value you want, it must be 65537 or higher and odd. 0 can be given for a default value of 65537.
+ * *rsa_n_str, *rsa_e_str and *rsa_d_str will hold the n,e,d parameters in b64 format. rsa_e_str is not needed, so it can be NULL, as you know the e value.
+ * rsa_primes_str will hold the primes strings, rsa_primes_str[primes], rsa_primes_str[0] for p prime, rsa_primes_str[1] for q prime and etc...
+ * rsa_primes_str can also be NULL if you don't want the primes.
  * These strings will be NULL terminated, but if you wish you can provide rsa_n_chars, rsa_e_chars, rsa_d_chars,
- * where the size of the b64 parameter stirngs in b64 chars will be written to *rsa_n_chars, *rsa_e_chars and *rsa_d_chars.
- * If you don't wish to know the sizes, NULL can be given rsa_n_chars, rsa_e_chars and rsa_d_chars.
+ * where the size of the b64 parameter strings in b64 chars will be written to *rsa_n_chars, *rsa_e_chars and *rsa_d_chars.
+ * rsa_primes_chars[primes], will hold the char counts of each one of the primes strings, rsa_primes_char[0] for p prime chars, etc...
+ * rsa_primes_chars must be pointing to enough allocated memory for all the primes char counts integer objects!!!! This memory must be handled by the caller.
+ * If you don't wish to know the sizes, NULL can be given rsa_n_chars, rsa_e_chars, rsa_d_chars and rsa_primes_chars.
  *
  * Error Codes:
- * -1  A NULL pointer was given for one of the string pointers.
- * -2  RSA bit size must be a multiple of 1024.
- * -3  Couldn't create EVP_PKEY_CTX object for RSA.
- * -4  Couldn't initialize key context object for RSA.
- * -5  Couldn't set parameters for key context object for RSA.
- * -6  Couldn't generate RSA keys.
- * -7  Couldn't create EVP_PKEY object, RSA keys couldn't be generated.
- * -8  Couldn't allocate the memory for the n, e or d RSA parameter BIGNUM object.
- * -9  Couldn't extract RSA n parameter.
- * -10 Couldn't extract RSA e parameter.
- * -11 Couldn't extract RSA d parameter.
- * -12 Couldn't allocate the memory for the RSA n, e or d parameter binary.
- * -13 Didn't copy the correct size of bytes from the n, e or d paramter BIGNUM to binary buffer.
- * -14 Couldn't allocate memory for rsa_n_chars, rsa_e_chars or rsa_d_chars.
- * -15 Couldn't allocate memory for n parameter string.
- * -16 Couldn't convert n parameter binary to base64.
- * -17 Couldn't allocate memory for e parameter string.
- * -18 Couldn't convert e parameter binary to base64.
- * -19 Couldn't allocate memory for d parameter string.
- * -20 Couldn't convert d parameter binary to base64.
+ * -1  A NULL pointer was given to rsa_n_str, rsa_d_str or rsa_primes.
+ * -2  Invalid number of primes. Must be between 2 and 10, higher bit sizes will have lower limits.
+ * -3  e value is too low. Must be above 65537 and odd.
+ * -4  e value isn't odd.
+ * -5  RSA bit size must be a multiple of 512.
+ * -6  Couldn't create EVP_PKEY_CTX object for RSA.
+ * -7  Couldn't initialize key context object for RSA.
+ * -8  Couldn't set parameters for key context object for RSA.
+ * -9  Couldn't generate RSA keys
+ * -10 Couldn't create EVP_PKEY object, RSA keys couldn't be generated.
+ * -11 Couldn't allocate the memory for the prime BIGNUM pointer objects.
+ * -12 Couldn't allocate the memory for one of the RSA BIGNUM objects.
+ * -13 Couldn't extract RSA n parameter.
+ * -14 Couldn't extract RSA e parameter.
+ * -15 Couldn't extract RSA d parameter.
+ * -16 Couldn't extract one of the RSA primes.
+ * -17 Couldn't allocate memory for the RSA prime buffers pointer.
+ * -18 Couldn't allocate the memory for one of the RSA parameters.
+ * -19 One of the parameter buffers was too small.
+ * -20 Couldn't allocate memory for rsa_n_chars, rsa_e_chars or rsa_d_chars or rsa_prime_chars.
+ * -21 Couldn't allocate memory for n parameter string.
+ * -22 Couldn't convert n parameter binary to base64.
+ * -23 Couldn't allocate memory for e parameter string.
+ * -24 Couldn't convert e parameter binary to base64.
+ * -25 Couldn't allocate memory for d parameter string.
+ * -26 Couldn't convert d parameter binary to base64.
+ * -27 Couldn't allocate memory for a prime string.
+ * -28 Couldn't convert a prime binary to base64.
  */
 extern int_fast8_t EMSCRIPTEN_KEEPALIVE _diode_RSA_Keygen(uint_least8_t** OUT rsa_n_str, uint_least32_t* rsa_n_chars,
 		uint_least8_t** OUT rsa_e_str, uint_least32_t* rsa_e_chars,
 		uint_least8_t** OUT rsa_d_str, uint_least32_t* rsa_d_chars,
-		uint_least32_t bits);
-
+		uint_least8_t** OUT rsa_primes_str, uint_least32_t* rsa_primes_chars, /* rsa_prime_chars must hold enough memory for the amount of primes */
+		uint_fast32_t bits, uint_fast32_t primes, uint_fast32_t e);
 
 /* This function generates a secret and an encapsulated out with the provided RSA n and e parameter strings in b64 format.
  * The parameter string sizes in b64 chars can be provided, if a string is null terminated the size can be given as 0.
@@ -181,10 +195,117 @@ extern int_fast8_t EMSCRIPTEN_KEEPALIVE _diode_RSA_Keygen(uint_least8_t** OUT rs
  * -16 Couldn't allocate memory for secret_n_chars.
  * -17 Couldn't allocate memory for out string.
  * -18 Couldn't allocate memory for secret string.
+ * -19 Couldn't convert out binary to a b64 string.
+ * -20 Couldn't convert secret binary to a b64 string.
  */
 extern int_fast8_t EMSCRIPTEN_KEEPALIVE _diode_RSA_encapsulate(unsigned char* IN rsa_n_str, uint_least32_t rsa_n_chars,
 		unsigned char* IN rsa_e_str, uint_least32_t rsa_e_chars,
 		uint_least8_t** OUT out_str, uint_least32_t* OUT out_n_chars,
 		uint_least8_t** OUT secret_str, uint_least32_t* OUT secret_n_chars);
+
+/* This function decapsulates the given out, with the given n,e,d parameters in b64 format, outputing the secret in b64 format.
+ * The parameter string sizes in b64 chars can be provided, if a string is null terminated the size can be given as 0.
+ * The secret_str will be in b64 format, the size in chars will be written to *secret_n_chars,
+ * altough this strings will be null terminated, so if you wish you may make secret_n_chars NULL.
+ *
+ * Error Codes:
+ * -1  A NULL pointer was provided to out_str, rsa_n_str, rsa_e_str, rsa_d_str or secret_str.
+ * -2  Couldn't get size of memory for parameters or data binary.
+ * -3  Couldn't allocate memory for one of the RSA parameters or data buffers.
+ * -4  Couldn't convert one or more b64 strings to binary.
+ * -5  Couldn't create EVP_PKEY_CTX object for RSA parameters.
+ * -6  Couldn't initialize EVP_PKEY_CTX object for RSA parameters.
+ * -7  Couldn't allocate memory for OSSL_PARAM objects.
+ * -8  Couldn't create parameters EVP_PKEY.
+ * -9  CTX creation for decapsulation from key failed.
+ * -10 Couldn't initialize for decapsulation.
+ * -11 Couldn't set key context for RSAVE operation.
+ * -12 Couldn't get secret max memory size.
+ * -13 Couldn't allocate memory for secret.
+ * -14 Couldn't decapsulate.
+ * -15 Couldn't allocate memory for secret_n_chars.
+ * -16 Couldn't allocate memory for data string.
+ * -17 Couldn't convert wrapped data to b64 string.
+ */
+extern int_fast8_t EMSCRIPTEN_KEEPALIVE _diode_RSA_decapsulate(unsigned char* IN rsa_n_str, uint_least32_t rsa_n_chars,
+		unsigned char* IN rsa_e_str, uint_least32_t rsa_e_chars,
+		unsigned char* IN rsa_d_str, uint_least32_t rsa_d_chars,
+		uint_least8_t* IN data_str, uint_least32_t data_n_chars,
+		uint_least8_t** OUT secret_str, uint_least32_t* OUT secret_n_chars);
+
+
+/* This function encrypts the given data in b64 format with the given RSA public parameters in b64 format, writing the output to *out_str in b64.
+ * None of the strings given and out_str can be NULL.
+ * rsa_n_chars, rsa_e_chars, data_n_chars can be given in case the strings aren't null terminated, otherwise, these can be given as 0.
+ * *out_n_chars will hold the amount of characters written to *out_str, altough this string will be null terminated.
+ * If you don't need the char count for out, out_n_chars can be given as NULL.
+ *
+ * Error Codes:
+ * -1  rsa_n_str, rsa_e_str, data_str or out_str are NULL.
+ * -2  Couldn't get size of one of the parameters or data binary buffers.
+ * -3  Couldn't allocate memory for one of the parameters or data buffers.
+ * -4  Couldn't convert one of the b64 strings to binary.
+ * -5  Couldn't create EVP_PKEY_CTX object for RSA parameters.
+ * -6  Couldn't initialize EVP_PKEY_CTX object for RSA parameters.
+ * -7  Couldn't create parameters EVP_PKEY.
+ * -8  CTX creation for encryption from key failed.
+ * -9  Couldn't initialize for encryption.
+ * -10 Coulnd't get out buffer size.
+ * -11 Coulnd't allocate memory for out buffer.
+ * -12 Coulnd't encrypt.
+ * -13 Couldn't allocate memory for out_n_chars.
+ * -14 Couldn't allocate memory for out string.
+ * -15 Couldn't convert encrypted out to b64 string.
+ */
+extern int_fast8_t EMSCRIPTEN_KEEPALIVE _diode_RSA_encrypt_wB64(unsigned char* IN rsa_n_str, uint_least32_t rsa_n_chars,
+		unsigned char* IN rsa_e_str, uint_least32_t rsa_e_chars,
+		uint_least8_t* IN data_str, uint_least32_t data_n_chars,
+		uint_least8_t** OUT out_str, uint_least32_t* out_n_chars);
+
+
+/* This function decrypts the given data in b64 format with the given RSA private parameters in b64 format, writing the output to *out_str in b64.
+ * None of the strings given and out_str can be NULL.
+ * rsa_n_chars, rsa_e_chars, rsa_d_chars and data_n_chars can be given in case the strings aren't null terminated, otherwise, these can be given as 0.
+ * *out_n_chars will hold the amount of characters written to *out_str, altough this string will be null terminated.
+ * If you don't need the char count for out, out_n_chars can be given as NULL.
+ *
+ * Error Codes:
+ * -1  rsa_n_str, rsa_e_str, rsa_d_str, data_str or out_str are NULL.
+ * -2  Couldn't get size of one of the parameters or data binary buffers.
+ * -3  Couldn't allocate memory for one of the parameters or data buffers.
+ * -4  Couldn't convert one of the b64 strings to binary.
+ * -5  Couldn't create EVP_PKEY_CTX object for RSA parameters.
+ * -6  Couldn't initialize EVP_PKEY_CTX object for RSA parameters.
+ * -7  Couldn't create parameters EVP_PKEY.
+ * -8  CTX creation for decryption from key failed.
+ * -9  Couldn't initialize for decryption.
+ * -10 Coulnd't get out buffer size.
+ * -11 Coulnd't allocate memory for out buffer.
+ * -12 Coulnd't decrypt.
+ * -13 Couldn't allocate memory for out_n_chars.
+ * -14 Couldn't allocate memory for out string.
+ * -15 Couldn't convert decrypted out to b64 string.
+ */
+extern int_fast8_t EMSCRIPTEN_KEEPALIVE _diode_RSA_decrypt_wB64(unsigned char* IN rsa_n_str, uint_least32_t rsa_n_chars,
+		unsigned char* IN rsa_e_str, uint_least32_t rsa_e_chars,
+		unsigned char* IN rsa_d_str, uint_least32_t rsa_d_chars,
+		uint_least8_t* IN data_str, uint_least32_t data_n_chars,
+		uint_least8_t** OUT out_str, uint_least32_t* out_n_chars);
+
+
+extern int_fast8_t EMSCRIPTEN_KEEPALIVE _diode_mceliece460896f_encrypt_wB64(unsigned char* IN pub_key_str, uint_least32_t pub_key_chars,
+		uint_least8_t* IN data_str, uint_least32_t data_n_chars,
+		uint_least8_t** OUT out_str, uint_least32_t* out_n_chars);
+
+
+extern int_fast8_t EMSCRIPTEN_KEEPALIVE _diode_mceliece460896f_encapsulate(unsigned char* IN pub_key_str, uint_least32_t pub_key_chars,
+		uint_least8_t** OUT out_str, uint_least32_t* OUT out_n_chars,
+		uint_least8_t** OUT secret_str, uint_least32_t* OUT secret_n_chars);
+
+
+extern int_fast8_t EMSCRIPTEN_KEEPALIVE _diode_mceliece460896f_decapsulate(unsigned char* IN prv_key_str, uint_least32_t prv_key_chars,
+		unsigned char* IN out_str, uint_least32_t IN out_n_chars,
+		uint_least8_t** OUT secret_str, uint_least32_t* OUT secret_n_chars);
+
 
 #endif /* _DIODE_KEYGEN_H */

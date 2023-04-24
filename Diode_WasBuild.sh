@@ -1,6 +1,6 @@
 #!/bin/bash
 
-EXPORTED_FUNCS="'__diode_RSA_encapsulate', '__diode_mceliece460896f_Keygen', '__diode_RSA_Keygen', '__diode_VerifySig_wED25519PublicBase64Key', '__diode_SignString_wED25519PrivateBase64Key', '__diode_ED25519_Keygen', '__diode_Init', '__diode_Close', '_main', '_malloc', '_free', '_DEBUG_print'"
+EXPORTED_FUNCS="'__diode_mceliece460896f_decapsulate', '__diode_mceliece460896f_encapsulate', '__diode_RSA_decrypt_wB64', '__diode_RSA_encrypt_wB64', '__diode_RSA_decapsulate', '__diode_RSA_encapsulate', '__diode_mceliece460896f_Keygen', '__diode_RSA_Keygen', '__diode_VerifySig_wED25519PublicBase64Key', '__diode_SignString_wED25519PrivateBase64Key', '__diode_ED25519_Keygen', '__diode_Init', '__diode_Close', '_main', '_malloc', '_free', '_DEBUG_print'"
 
 #Flags
 DEPS_Y="false"
