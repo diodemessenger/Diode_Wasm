@@ -1,6 +1,9 @@
 #ifndef _DIODE_MAIN_H
 #define _DIODE_MAIN_H
 
+/* Diode Project */
+#define DIODE___
+
 /* Code Readability defines */
 #define OUT
 #define IN

@@ -1,0 +1,11 @@
+--- a/mceliece-20221023/Optimized_Implementation/kem/mceliece460896f/encrypt.c	2023-05-02 20:33:15.408331068 +0000
++++ b/mceliece-20221023/Optimized_Implementation/kem/mceliece460896f/encrypt.c	2023-05-02 20:32:18.456471480 +0000
+@@ -145,7 +145,7 @@
+ {
+ 	gen_e(e);
+ 
+-#ifdef KAT
++#ifdef KAT_NEW
+   {
+     int k;
+     printf("encrypt e: positions");

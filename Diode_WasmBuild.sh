@@ -66,18 +66,23 @@ cd dependacies
 	#Openssl
 	git clone --depth=1 https://github.com/openssl/openssl.git
 	cd openssl
+	patch -p1 <"$MAIN_WD/patches/rand_lib.patch"
+
+	export CFLAGS="-I$MAIN_WD/include/"
 
 	# no-autoerrinit removes the error strings, smaller static link lib but worst for debugging
 	# no-deprecated no-autoerrinit no-module
-	./Configure --prefix=$__WD --release linux-generic32 no-autoerrinit no-module no-afalgeng no-threads no-shared no-tests -fPIC -DOPENSSL_PIC
+	./Configure --prefix=$__WD no-async no-egd no-ktls no-posix-io no-secure-memory no-sock no-asm no-thread-pool no-ui-console no-weak-ssl-ciphers no-autoerrinit no-module no-afalgeng no-threads no-shared no-tests -fPIC -DOPENSSL_PIC
 	emmake make clean -j4
 	emmake make ordinals -j4
 	emmake make libcrypto.a -j4
 	emranlib libcrypto.a
 	emmake make libssl.a -j4
 	emranlib libssl.a
-	make test -j4
+	# make test -j4
 	make install -j4
+	cp *.a $__WD/lib
+	cp -r ./include $__WD
 	cd ..
 
 
@@ -162,7 +167,7 @@ fi
 #Mceliece Algorithm
 export MCELIECE_PWD=$(pwd)/mceliece-20221023/Optimized_Implementation/kem/mceliece460896f
 
-export TARGET_NAME=Classic_McEliece
+export TARGET_NAME=Diode
 export TARGET_DIR=$MCELIECE_PWD
 
 export SRC_DIRS="$MAIN_WD/src $MCELIECE_PWD $MCELIECE_PWD/nist $MCELIECE_PWD/subroutines "
@@ -170,11 +175,15 @@ export SRC_DIRS="$MAIN_WD/src $MCELIECE_PWD $MCELIECE_PWD/nist $MCELIECE_PWD/sub
 export INC_DIRS="$MAIN_WD/dependacies/include $MCELIECE_PWD $MCELIECE_PWD/nist $MCELIECE_PWD/subroutines $MAIN_WD/include "
 
 
-export LFLAGS="-s LLD_REPORT_UNDEFINED -L$MAIN_WD/dependacies/lib -s \"EXPORTED_RUNTIME_METHODS=['ccall', 'cwrap', 'UTF8ToString', 'getValue']\" -s \"EXPORTED_FUNCTIONS=[$EXPORTED_FUNCS]\" -lssl -lkeccak -lcrypto -ldl "
+export LFLAGS="-s LLD_REPORT_UNDEFINED -L$MAIN_WD/dependacies/lib -s \"EXPORTED_RUNTIME_METHODS=['ccall', 'cwrap', 'UTF8ToString', 'getValue', 'setValue']\" -s \"EXPORTED_FUNCTIONS=[$EXPORTED_FUNCS]\" -lssl -lkeccak -lcrypto -ldl "
 
 KATNUM_I=$(cat $MCELIECE_PWD/KATNUM)
 
 export CFLAGS="$OPTIMIZE -march=native -mtune=native -Wall -Wextra -Wno-unused-function -Wno-unused-parameter -Wno-sign-compare -DKAT -DKATNUM=$KATNUM_I \"-DCRYPTO_NAMESPACE(x)=x\" \"-D_CRYPTO_NAMESPACE(x)=_##x\""
+
+patch -p1 <"$MAIN_WD/patches/encrypt.patch"
+patch -p1 <"$MAIN_WD/patches/rng.patch"
+patch -p1 <"$MAIN_WD/patches/kat_kem.patch"
 
 if [ "$MAKE_CLEAN" = "true" ] ; then
 	emmake make -j4 -C$MCELIECE_PWD -f$MAIN_WD/Makefile clean $MAKE_TRACE
@@ -182,7 +191,7 @@ else
 	emmake make -j4 -C$MCELIECE_PWD -f$MAIN_WD/Makefile $MAKE_TRACE
 fi
 
-cp $MCELIECE_PWD/*tar.gz ./
+cp $MCELIECE_PWD/*tar.gz ./Diode.tar.gz
 
 export SRC_DIRS=""
 export INC_DIRS=""

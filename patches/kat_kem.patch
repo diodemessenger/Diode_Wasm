@@ -1,0 +1,11 @@
+--- a/mceliece-20221023/Optimized_Implementation/kem/mceliece460896f/nist/kat_kem.c	2023-05-02 20:06:24.532473805 +0000
++++ b/mceliece-20221023/Optimized_Implementation/kem/mceliece460896f/nist/kat_kem.c	2023-05-02 20:06:24.532473805 +0000
+@@ -21,7 +21,7 @@
+ unsigned char seed[KATNUM][48];
+ 
+ int
+-main()
++mc_main()
+ {
+     FILE                *fp_req, *fp_rsp;
+     int                 ret_val;

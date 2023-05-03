@@ -1,5 +1,6 @@
 #include <_diode_Main.h>
 #include <_diode_Keygen.h>
+#include <_diode_Entropy.h>
 #include <crypto_kem_mceliece460896f.h>
 #include <operations.h>
 
@@ -7,21 +8,23 @@
 #include <openssl/ssl.h>
 #include <openssl/bn.h>
 #include <openssl/evp.h>
+#include <openssl/rand.h>
 #include <stdint.h>
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
 
+#define VAL_TO_HEX_CHAR(x) ( (((x)+48)*((x) < 10)) | (((x)+55)*((x) > 9)) )
+
 /* Defines for code readability */
 #define IN
 #define OUT
-
 
 #undef KAT
 
 int main(void)
 {
-	/*	
+	/*
 	_diode_Init();
 	unsigned char* msg = (unsigned char*) "Hello Wasm!";
 
@@ -162,17 +165,28 @@ int main(void)
 
 	
 	puts("main() is done!\n");
-	*/
 	
+	*/
 	return 0;
 }
 
 
 int EMSCRIPTEN_KEEPALIVE _diode_Init()
-{
+{	
 	SSL_library_init();
 	SSL_load_error_strings();
 	OpenSSL_add_all_algorithms();
+
+
+	uint_least8_t* entropy;
+	entropy = _diode_EntropyBytes_JS(8);
+	
+	EVP_RAND_CTX *drbg = RAND_get0_primary(NULL);
+    	if (drbg == NULL)
+		return -1;
+	EVP_RAND_reseed(drbg, 0, NULL, 0, entropy, 8);
+	memset(entropy, 0, 8);
+	free(entropy);
 
 	return 0;
 }
@@ -2875,7 +2889,27 @@ int_fast8_t EMSCRIPTEN_KEEPALIVE _diode_mceliece460896f_encrypt_wB64(unsigned ch
 	return 0;
 }
 
-//extern int crypto_kem_enc(unsigned char *c, unsigned char *key, const unsigned char *pk);
+
+/* This function does encapsulation using a public McEliece460896f key in b64 format, giving a shared secret and out in b64 format.
+ * pub_key_str is the input for the public key string in b64 format, if it is null terminated then pub_key_chars can be given as zero, if not,
+ * pub_key_chars must be the amount of characters in the string.
+ * out_str and secret_str must not be NULL, and they will point to the shared secret and out, null terminated, b64 strings.
+ * If you wish to know the the secret or out string char counts, you may give out_n_chars or secret_n_chars which will hold these values,
+ * although if you don't wish the char counts, these can be given as NULL.
+ *
+ * Error Codes:
+ * -1  A NULL pointer was provided to out_str, secret_str, or pub_key_str.
+ * -2  Couldn't get size of memory for public key.
+ * -3  Couldn't allocate memory for public key binary.
+ * -4  Couldn't convert b64 public key to binary.
+ * -5  Couldn't allocate memory for secret or out buffers.
+ * -6  Couldn't allocate memory for out_n_chars.
+ * -7  Couldn't allocate memory for out string.
+ * -8  Couldn't convert out binary to a b64 string.
+ * -9  Couldn't allocate memory for secret_n_chars.
+ * -10 Couldn't allocate memory for secret string.
+ * -11 Couldn't convert secret binary to a b64 string. 
+ */
 int_fast8_t EMSCRIPTEN_KEEPALIVE _diode_mceliece460896f_encapsulate(unsigned char* IN pub_key_str, uint_least32_t pub_key_chars,
 		uint_least8_t** OUT out_str, uint_least32_t* OUT out_n_chars,
 		uint_least8_t** OUT secret_str, uint_least32_t* OUT secret_n_chars)
@@ -3027,7 +3061,23 @@ int_fast8_t EMSCRIPTEN_KEEPALIVE _diode_mceliece460896f_encapsulate(unsigned cha
 }
 
 
-//extern int crypto_kem_dec(unsigned char *key, const unsigned char *c, const unsigned char *sk);
+/* This function does decapsulation using a private McEliece460896f key in b64 format, extracting the shared secret in b64 format.
+ * prv_key_str is the input for the private key string in b64 format, if it is null terminated then prv_key_chars can be given as zero, if not,
+ * prv_key_chars must be the amount of characters in the string.
+ * Similary to prv_key_str and prv_key_chars, out_str is the input for the out in b64 format and out_n_chars the char count, if string isn't null terminated.
+ * secret_str must not be NULL, and it will point to the shared secret, null terminated, b64 string.
+ * If you wish to know the the secret char count, you may give secret_n_chars which will hold the count,
+ * although if you don't wish the char count, secret_n_chars can be given as NULL.
+ *
+ * Error Codes:
+ * -1  A NULL pointer was provided to out_str, secret_str, or prv_key_str.
+ * -2  Couldn't get size of memory for private key or out.
+ * -3  Couldn't allocate memory for out, secret or private key.
+ * -4  Couldn't convert b64 private key or out to binary.
+ * -5  Couldn't allocate memory for secret_n_chars.
+ * -6  Couldn't allocate memory for secret string.
+ * -7  Couldn't convert secret binary to a b64 string.
+ */
 int_fast8_t EMSCRIPTEN_KEEPALIVE _diode_mceliece460896f_decapsulate(unsigned char* IN prv_key_str, uint_least32_t prv_key_chars,
 		unsigned char* IN out_str, uint_least32_t IN out_n_chars,
 		uint_least8_t** OUT secret_str, uint_least32_t* OUT secret_n_chars)

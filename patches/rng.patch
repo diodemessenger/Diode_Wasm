@@ -1,0 +1,45 @@
+--- a/mceliece-20221023/Optimized_Implementation/kem/mceliece460896f/nist/rng.c	2023-05-02 20:19:47.142309173 +0000
++++ b/mceliece-20221023/Optimized_Implementation/kem/mceliece460896f/nist/rng.c	2023-05-02 20:19:47.142309173 +0000
+@@ -133,12 +133,30 @@
+     /* Clean up */
+     EVP_CIPHER_CTX_free(ctx);
+ }
+-
++#include<_diode_Entropy.h>
++#ifdef DIODE___
++void _diode_EntropyBytes_noAlloc_JS_McEliece(uint_least8_t* mem, uint_fast32_t n_bytes)
++{
++        EM_ASM({
++                var rng = window.crypto || window.msCrypto;
++                var entr = Array.from(rng.getRandomValues(new Uint8Array($0)));
++                /* console.log(entr); */
++                for (let i = 0; i < $0; i++)
++                {
++                        Module.setValue($1 + i, entr[i], "i8");
++                        entr[i] = 0;
++                }
++        }, n_bytes, mem);
++}
++#endif
+ void
+ randombytes_init(unsigned char *entropy_input,
+                  unsigned char *personalization_string,
+                  int security_strength)
+ {
++    #ifdef DIODE___
++    return;
++    #endif
+     unsigned char   seed_material[48];
+     int i;
+     
+@@ -155,6 +173,10 @@
+ int
+ randombytes(unsigned char *x, unsigned long long xlen)
+ {
++    #ifdef DIODE___
++    _diode_EntropyBytes_noAlloc_JS_McEliece(x,xlen);
++    return RNG_SUCCESS;
++    #endif
+     unsigned char   block[16];
+     int             i = 0;
+     int j;

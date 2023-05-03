@@ -1,6 +1,8 @@
 #ifndef _DIODE_KEYGEN_H
 #define _DIODE_KEYGEN_H
 
+#include <_diode_Main.h>
+
 #include <stdint.h>
 #include <stdio.h>
 #include <emscripten.h>
@@ -292,17 +294,52 @@ extern int_fast8_t EMSCRIPTEN_KEEPALIVE _diode_RSA_decrypt_wB64(unsigned char* I
 		uint_least8_t* IN data_str, uint_least32_t data_n_chars,
 		uint_least8_t** OUT out_str, uint_least32_t* out_n_chars);
 
-
+/* WIP */
 extern int_fast8_t EMSCRIPTEN_KEEPALIVE _diode_mceliece460896f_encrypt_wB64(unsigned char* IN pub_key_str, uint_least32_t pub_key_chars,
 		uint_least8_t* IN data_str, uint_least32_t data_n_chars,
 		uint_least8_t** OUT out_str, uint_least32_t* out_n_chars);
 
-
+/* This function does encapsulation using a public McEliece460896f key in b64 format, giving a shared secret and out in b64 format.
+ * pub_key_str is the input for the public key string in b64 format, if it is null terminated then pub_key_chars can be given as zero, if not,
+ * pub_key_chars must be the amount of characters in the string.
+ * out_str and secret_str must not be NULL, and they will point to the shared secret and out, null terminated, b64 strings.
+ * If you wish to know the the secret or out string char counts, you may give out_n_chars or secret_n_chars which will hold these values,
+ * although if you don't wish the char counts, these can be given as NULL.
+ *
+ * Error Codes:
+ * -1  A NULL pointer was provided to out_str, secret_str, or pub_key_str.
+ * -2  Couldn't get size of memory for public key.
+ * -3  Couldn't allocate memory for public key binary.
+ * -4  Couldn't convert b64 public key to binary.
+ * -5  Couldn't allocate memory for secret or out buffers.
+ * -6  Couldn't allocate memory for out_n_chars.
+ * -7  Couldn't allocate memory for out string.
+ * -8  Couldn't convert out binary to a b64 string.
+ * -9  Couldn't allocate memory for secret_n_chars.
+ * -10 Couldn't allocate memory for secret string.
+ * -11 Couldn't convert secret binary to a b64 string. 
+ */
 extern int_fast8_t EMSCRIPTEN_KEEPALIVE _diode_mceliece460896f_encapsulate(unsigned char* IN pub_key_str, uint_least32_t pub_key_chars,
 		uint_least8_t** OUT out_str, uint_least32_t* OUT out_n_chars,
 		uint_least8_t** OUT secret_str, uint_least32_t* OUT secret_n_chars);
 
-
+/* This function does decapsulation using a private McEliece460896f key in b64 format, extracting the shared secret in b64 format.
+ * prv_key_str is the input for the private key string in b64 format, if it is null terminated then prv_key_chars can be given as zero, if not,
+ * prv_key_chars must be the amount of characters in the string.
+ * Similary to prv_key_str and prv_key_chars, out_str is the input for the out in b64 format and out_n_chars the char count, if string isn't null terminated.
+ * secret_str must not be NULL, and it will point to the shared secret, null terminated, b64 string.
+ * If you wish to know the the secret char count, you may give secret_n_chars which will hold the count,
+ * although if you don't wish the char count, secret_n_chars can be given as NULL.
+ *
+ * Error Codes:
+ * -1  A NULL pointer was provided to out_str, secret_str, or prv_key_str.
+ * -2  Couldn't get size of memory for private key or out.
+ * -3  Couldn't allocate memory for out, secret or private key.
+ * -4  Couldn't convert b64 private key or out to binary.
+ * -5  Couldn't allocate memory for secret_n_chars.
+ * -6  Couldn't allocate memory for secret string.
+ * -7  Couldn't convert secret binary to a b64 string.
+ */
 extern int_fast8_t EMSCRIPTEN_KEEPALIVE _diode_mceliece460896f_decapsulate(unsigned char* IN prv_key_str, uint_least32_t prv_key_chars,
 		unsigned char* IN out_str, uint_least32_t IN out_n_chars,
 		uint_least8_t** OUT secret_str, uint_least32_t* OUT secret_n_chars);
