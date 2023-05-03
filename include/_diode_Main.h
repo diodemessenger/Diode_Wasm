@@ -1,8 +1,16 @@
 #ifndef _DIODE_MAIN_H
 #define _DIODE_MAIN_H
 
+#include <emscripten.h>
+#include <stdio.h>
+
 /* Diode Project */
 #define DIODE___
+
+/* If emscripten isn't used */
+#ifndef EMSCRIPTEN_KEEPALIVE
+#define EMSCRIPTEN_KEEPALIVE /* nothing */
+#endif
 
 /* Code Readability defines */
 #define OUT
@@ -27,5 +35,8 @@
 #else
 #define _DIODE_DEBUG_PRINT(x, args...)
 #endif
+
+extern int EMSCRIPTEN_KEEPALIVE _diode_Init();
+extern int EMSCRIPTEN_KEEPALIVE _diode_Close();
 
 #endif /* _DIODE_MAIN_H */

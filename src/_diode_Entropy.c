@@ -1,5 +1,4 @@
 #include <_diode_Entropy.h>
-#include <emscripten.h>
 #include <stdlib.h>
 
 /* This function returns an array of bytes of n_bytes size of entropy from JS crypto */

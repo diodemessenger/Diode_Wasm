@@ -1,6 +1,6 @@
 #!/bin/bash
 
-EXPORTED_FUNCS="'__diode_mceliece460896f_decapsulate', '__diode_mceliece460896f_encapsulate', '__diode_RSA_decrypt_wB64', '__diode_RSA_encrypt_wB64', '__diode_RSA_decapsulate', '__diode_RSA_encapsulate', '__diode_mceliece460896f_Keygen', '__diode_RSA_Keygen', '__diode_VerifySig_wED25519PublicBase64Key', '__diode_SignString_wED25519PrivateBase64Key', '__diode_ED25519_Keygen', '__diode_Init', '__diode_Close', '_main', '_malloc', '_free', '_DEBUG_print'"
+EXPORTED_FUNCS="'__diode_mceliece460896f_decapsulate', '__diode_mceliece460896f_encapsulate', '__diode_RSA_decrypt_wB64', '__diode_RSA_encrypt_wB64', '__diode_RSA_decapsulate', '__diode_RSA_encapsulate', '__diode_mceliece460896f_Keygen', '__diode_RSA_Keygen', '__diode_VerifySig_wED25519PublicBase64Key', '__diode_SignString_wED25519PrivateBase64Key', '__diode_ED25519_Keygen', '__diode_Init', '__diode_Close', '_main', '_malloc', '_free'"
 
 #Flags
 DEPS_Y="false"
@@ -35,27 +35,6 @@ mkdir -p dependacies/include/openssl
 mkdir -p dependacies/share
 mkdir -p dependacies/doc
 mkdir -p src
-
-#Source files
-if [ ! -f "$MAIN_WD/src/DEBUG_mc_print.c"  ]
-then
-	read -r -d '' MCELIECE_DEBUG_PRINT_SOURCE <<- EOM
-	#include <stdio.h>\n
-
-	void    DEBUG_print(unsigned char *A, unsigned long long L)
-	{
-		unsigned long long i;
-
-		for ( i=0; i<L; i++ )
-			fprintf(stdout, "%02X", A[i]);
-
-		if ( L == 0 )
-			fprintf(stdout, "00");
-	}
-	EOM
-	touch ./src/DEBUG_mc_print.c
-	echo -e $MCELIECE_DEBUG_PRINT_SOURCE > ./src/DEBUG_mc_print.c
-fi
 
 #Dependacies
 

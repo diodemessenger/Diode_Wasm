@@ -1,8 +1,6 @@
 #ifndef _DIODE_ENTROPY_H
 #define _DIODE_ENTROPY_H
 
-#include <_diode_Main.h>
-
 #include <stdint.h>
 #include <emscripten.h>
 
