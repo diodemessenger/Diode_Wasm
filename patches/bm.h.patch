@@ -1,0 +1,14 @@
+--- a/mceliece-20221023/Optimized_Implementation/kem/mceliece460896f/bm.h	2023-05-03 20:13:08.720046607 +0000
++++ b/mceliece-20221023/Optimized_Implementation/kem/mceliece460896f/bm.h	2023-05-03 20:13:08.720046607 +0000
+@@ -5,9 +5,9 @@
+ 
+ #ifndef BM_H
+ #define BM_H
+-#define bm CRYPTO_NAMESPACE(bm)
++#define mc_bm CRYPTO_NAMESPACE(mc_bm)
+ 
+-void bm(gf *, gf *);
++void mc_bm(gf *, gf *);
+ 
+ #endif
+ 

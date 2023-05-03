@@ -45,9 +45,10 @@ cd dependacies
 	#Openssl
 	git clone --depth=1 https://github.com/openssl/openssl.git
 	cd openssl
-	patch -p1 <"$MAIN_WD/patches/rand_lib.patch"
+	patch -N -p1 <"$MAIN_WD/patches/rand_lib.patch"
 
-	export CFLAGS="-I$MAIN_WD/include/"
+	export CFLAGS="-I$MAIN_WD/include/ -pthread"
+	export LFLAGS="-pthread"
 
 	# no-autoerrinit removes the error strings, smaller static link lib but worst for debugging
 	# no-deprecated no-autoerrinit no-module
@@ -76,8 +77,8 @@ cd dependacies
 
 	export SRC_DIRS=""
 	export INC_DIRS=""
-	export LFLAGS=""
-	export CFLAGS=""
+	export LFLAGS="-pthread"
+	export CFLAGS="-pthread"
 
 
 	#GF2X
@@ -154,15 +155,23 @@ export SRC_DIRS="$MAIN_WD/src $MCELIECE_PWD $MCELIECE_PWD/nist $MCELIECE_PWD/sub
 export INC_DIRS="$MAIN_WD/dependacies/include $MCELIECE_PWD $MCELIECE_PWD/nist $MCELIECE_PWD/subroutines $MAIN_WD/include "
 
 
-export LFLAGS="-s LLD_REPORT_UNDEFINED -L$MAIN_WD/dependacies/lib -s \"EXPORTED_RUNTIME_METHODS=['ccall', 'cwrap', 'UTF8ToString', 'getValue', 'setValue']\" -s \"EXPORTED_FUNCTIONS=[$EXPORTED_FUNCS]\" -lssl -lkeccak -lcrypto -ldl "
+export LFLAGS="-pthread -s LLD_REPORT_UNDEFINED -L$MAIN_WD/dependacies/lib -s \"EXPORTED_RUNTIME_METHODS=['ccall', 'cwrap', 'UTF8ToString', 'getValue', 'setValue']\" -s \"EXPORTED_FUNCTIONS=[$EXPORTED_FUNCS]\" -lssl -lkeccak -lcrypto -ldl "
 
 KATNUM_I=$(cat $MCELIECE_PWD/KATNUM)
 
-export CFLAGS="$OPTIMIZE -march=native -mtune=native -Wall -Wextra -Wno-unused-function -Wno-unused-parameter -Wno-sign-compare -DKAT -DKATNUM=$KATNUM_I \"-DCRYPTO_NAMESPACE(x)=x\" \"-D_CRYPTO_NAMESPACE(x)=_##x\""
+export CFLAGS="$OPTIMIZE -pthread -march=native -mtune=native -Wall -Wextra -Wno-unused-function -Wno-unused-parameter -Wno-sign-compare -DKAT -DKATNUM=$KATNUM_I \"-DCRYPTO_NAMESPACE(x)=x\" \"-D_CRYPTO_NAMESPACE(x)=_##x\""
 
-patch -p1 <"$MAIN_WD/patches/encrypt.patch"
-patch -p1 <"$MAIN_WD/patches/rng.patch"
-patch -p1 <"$MAIN_WD/patches/kat_kem.patch"
+patch -N -p1 <"$MAIN_WD/patches/encrypt.patch"
+patch -N -p1 <"$MAIN_WD/patches/rng.patch"
+patch -N -p1 <"$MAIN_WD/patches/kat_kem.patch"
+patch -N -p1 <"$MAIN_WD/patches/gf.c.patch"
+patch -N -p1 <"$MAIN_WD/patches/gf.h.patch"
+patch -N -p1 <"$MAIN_WD/patches/bm.c.patch"
+patch -N -p1 <"$MAIN_WD/patches/bm.h.patch"
+patch -N -p1 <"$MAIN_WD/patches/decrypt.c.patch"
+patch -N -p1 <"$MAIN_WD/patches/pk_gen.c.patch"
+patch -N -p1 <"$MAIN_WD/patches/root.c.patch"
+patch -N -p1 <"$MAIN_WD/patches/sk_gen.c.patch"
 
 if [ "$MAKE_CLEAN" = "true" ] ; then
 	emmake make -j4 -C$MCELIECE_PWD -f$MAIN_WD/Makefile clean $MAKE_TRACE

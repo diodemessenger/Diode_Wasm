@@ -1,0 +1,18 @@
+--- a/mceliece-20221023/Optimized_Implementation/kem/mceliece460896f/synd.c	2023-05-03 20:57:56.601262287 +0000
++++ b/mceliece-20221023/Optimized_Implementation/kem/mceliece460896f/synd.c	2023-05-03 20:57:56.601262287 +0000
+@@ -24,12 +24,12 @@
+ 		c = (r[i/8] >> (i%8)) & 1;
+ 
+ 		e = eval(f, L[i]);
+-		e_inv = gf_inv(gf_mul(e,e));
++		e_inv = mc_gf_inv(mc_gf_mul(e,e));
+ 
+ 		for (j = 0; j < 2*SYS_T; j++)
+ 		{
+-			out[j] = gf_add(out[j], gf_mul(e_inv, c));
+-			e_inv = gf_mul(e_inv, L[i]);
++			out[j] = mc_gf_add(out[j], mc_gf_mul(e_inv, c));
++			e_inv = mc_gf_mul(e_inv, L[i]);
+ 		}
+ 	}
+ }

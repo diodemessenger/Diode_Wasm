@@ -1,0 +1,35 @@
+--- a/mceliece-20221023/Optimized_Implementation/kem/mceliece460896f/gf.h	2023-05-03 20:56:08.029557413 +0000
++++ b/mceliece-20221023/Optimized_Implementation/kem/mceliece460896f/gf.h	2023-05-03 20:56:08.029557413 +0000
+@@ -4,22 +4,22 @@
+ 
+ #ifndef GF_H
+ #define GF_H
+-#define gf_add CRYPTO_NAMESPACE(gf_add)
+-#define gf_frac CRYPTO_NAMESPACE(gf_frac)
+-#define gf_inv CRYPTO_NAMESPACE(gf_inv)
+-#define gf_iszero CRYPTO_NAMESPACE(gf_iszero)
+-#define gf_mul CRYPTO_NAMESPACE(gf_mul)
++#define mc_gf_add CRYPTO_NAMESPACE(mc_gf_add)
++#define mc_gf_frac CRYPTO_NAMESPACE(mc_gf_frac)
++#define mc_gf_inv CRYPTO_NAMESPACE(mc_gf_inv)
++#define mc_gf_iszero CRYPTO_NAMESPACE(mc_gf_iszero)
++#define mc_gf_mul CRYPTO_NAMESPACE(mc_gf_mul)
+ #define GF_mul CRYPTO_NAMESPACE(GF_mul)
+ 
+ #include <stdint.h>
+ 
+ typedef uint16_t gf;
+ 
+-gf gf_iszero(gf);
+-gf gf_add(gf, gf);
+-gf gf_mul(gf, gf);
+-gf gf_frac(gf, gf);
+-gf gf_inv(gf);
++gf mc_gf_iszero(gf);
++gf mc_gf_add(gf, gf);
++gf mc_gf_mul(gf, gf);
++gf mc_gf_frac(gf, gf);
++gf mc_gf_inv(gf);
+ 
+ void GF_mul(gf *, gf *, gf *);
+ 

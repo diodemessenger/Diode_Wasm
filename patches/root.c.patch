@@ -1,0 +1,13 @@
+--- a/mceliece-20221023/Optimized_Implementation/kem/mceliece460896f/root.c	2023-05-03 20:04:20.961477419 +0000
++++ b/mceliece-20221023/Optimized_Implementation/kem/mceliece460896f/root.c	2023-05-03 20:04:20.961477419 +0000
+@@ -19,8 +19,8 @@
+ 
+ 	for (i = SYS_T-1; i >= 0; i--)
+ 	{
+-		r = gf_mul(r, a);
+-		r = gf_add(r, f[i]);
++		r = mc_gf_mul(r, a);
++		r = mc_gf_add(r, f[i]);
+ 	}
+ 
+ 	return r;

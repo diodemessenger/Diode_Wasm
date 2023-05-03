@@ -1,0 +1,33 @@
+--- a/mceliece-20221023/Optimized_Implementation/kem/mceliece460896f/sk_gen.c	2023-05-03 20:05:53.697227008 +0000
++++ b/mceliece-20221023/Optimized_Implementation/kem/mceliece460896f/sk_gen.c	2023-05-03 20:05:53.697227008 +0000
+@@ -48,7 +48,7 @@
+ 	{
+ 		for (k = j + 1; k < SYS_T; k++)
+ 		{
+-			mask = gf_iszero(mat[ j ][ j ]);
++			mask = mc_gf_iszero(mat[ j ][ j ]);
+ 
+ 			for (c = j; c < SYS_T + 1; c++)
+ 				mat[ c ][ j ] ^= mat[ c ][ k ] & mask;
+@@ -60,10 +60,10 @@
+ 			return -1;
+ 		}
+ 
+-		inv = gf_inv(mat[j][j]);
++		inv = mc_gf_inv(mat[j][j]);
+ 
+ 		for (c = j; c < SYS_T + 1; c++)
+-			mat[ c ][ j ] = gf_mul(mat[ c ][ j ], inv) ;
++			mat[ c ][ j ] = mc_gf_mul(mat[ c ][ j ], inv) ;
+ 
+ 		for (k = 0; k < SYS_T; k++)
+ 		{
+@@ -72,7 +72,7 @@
+ 				t = mat[ j ][ k ];
+ 
+ 				for (c = j; c < SYS_T + 1; c++)
+-					mat[ c ][ k ] ^= gf_mul(mat[ c ][ j ], t);
++					mat[ c ][ k ] ^= mc_gf_mul(mat[ c ][ j ], t);
+ 			}
+ 		}
+ 	}

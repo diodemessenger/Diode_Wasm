@@ -1,0 +1,33 @@
+--- a/mceliece-20221023/Optimized_Implementation/kem/mceliece460896f/bm.c	2023-05-03 19:59:27.294266557 +0000
++++ b/mceliece-20221023/Optimized_Implementation/kem/mceliece460896f/bm.c	2023-05-03 19:59:27.294266557 +0000
+@@ -12,7 +12,7 @@
+ /* the Berlekamp-Massey algorithm */
+ /* input: s, sequence of field elements */
+ /* output: out, minimal polynomial of s */
+-void bm(gf *out, gf *s)
++void mc_bm(gf *out, gf *s)
+ {
+ 	int i;
+ 
+@@ -41,7 +41,7 @@
+ 		d = 0;
+ 
+ 		for (i = 0; i <= min(N, SYS_T); i++)
+-			d ^= gf_mul(C[i], s[ N-i]);
++			d ^= mc_gf_mul(C[i], s[ N-i]);
+ 	
+ 		mne = d; mne -= 1;   mne >>= 15; mne -= 1;
+ 		mle = N; mle -= 2*L; mle >>= 15; mle -= 1;
+@@ -50,10 +50,10 @@
+ 		for (i = 0; i <= SYS_T; i++)			
+ 			T[i] = C[i];
+ 
+-		f = gf_frac(b, d);
++		f = mc_gf_frac(b, d);
+ 
+ 		for (i = 0; i <= SYS_T; i++)			
+-			C[i] ^= gf_mul(f, B[i]) & mne;
++			C[i] ^= mc_gf_mul(f, B[i]) & mne;
+ 
+ 		L = (L & ~mle) | ((N+1-L) & mle);
+ 

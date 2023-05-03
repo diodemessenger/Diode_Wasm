@@ -1,0 +1,28 @@
+--- a/mceliece-20221023/Optimized_Implementation/kem/mceliece460896f/decrypt.c	2023-05-03 20:02:19.817803797 +0000
++++ b/mceliece-20221023/Optimized_Implementation/kem/mceliece460896f/decrypt.c	2023-05-03 20:02:19.817803797 +0000
+@@ -46,7 +46,7 @@
+ 
+ 	synd(s, g, L, r);
+ 
+-	bm(locator, s);
++	mc_bm(locator, s);
+ 
+ 	root(images, locator, L);
+ 
+@@ -57,14 +57,14 @@
+ 
+ 	for (i = 0; i < SYS_N; i++)
+ 	{
+-		t = gf_iszero(images[i]) & 1;
++		t = mc_gf_iszero(images[i]) & 1;
+ 
+ 		e[ i/8 ] |= t << (i%8);
+ 		w += t;
+ 
+ 	}
+ 
+-#ifdef KAT
++#ifdef KAT_NEW
+   {
+     int k;
+     printf("decrypt e: positions");
