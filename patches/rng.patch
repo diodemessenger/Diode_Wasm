@@ -5,7 +5,7 @@
      EVP_CIPHER_CTX_free(ctx);
  }
 -
-+#include<_diode_Entropy.h>
++#include<_diode_Main.h>
 +#ifdef DIODE___
 +void _diode_EntropyBytes_noAlloc_JS_McEliece(uint_least8_t* mem, uint_fast32_t n_bytes)
 +{

@@ -9,58 +9,76 @@
 #include <openssl/ssl.h>
 #include <openssl/err.h>
 
-/* Generates a signature from a given string of a private key in base64 chars and a message,
- * Takes in the string (msg) to make the signature , private key string (b64_key),
- * and allocates a string pointer, to be returned by the function, with the signature.
- * If the msg_len is given to be 0, then msg is expected to be null terminated to find the size.
- * key bits lenght MUST be divisable by 8.
+/* Signs the given message with a private key in base64,
+ * Takes in the message string (msg) to make the digest (dig), signing with private key string (prv_key_str),
+ * and allocates a string stored in *dig, with the digest.
+ * If the msg_len/prv_key_chars is given to be 0, then msg/prv_key_str is expected to be null terminated to find the size.
  *
  * free() must be called to free the returned string memory by the caller.
- * If the singning failed NULL is returned.
+ * 
+ * error codes:
+ * -1  msg, prv_key_str or dig was given as a NULL pointer.
+ * -2  Invalid private key given.
+ * -3  Couldn't allocate private key memory.
+ * -4  Couldn't convert private key to binary.
+ * -5  Couldn't create EVP_PKEY object.
+ * -6  Couldn't create EVP_MD_CTX object.
+ * -7  Couldn't initialize CTX.
+ * -8  Couldn't get digest size.
+ * -9  Couldn't allocate digest memory.
+ * -10 Couldn't sign.
+ * -11 Couldn't allocate memory for digest string.
+ * -12 Couldn't convert signature binary to b64 string.
  */
-uint_least8_t* EMSCRIPTEN_KEEPALIVE _diode_SignString_wED25519PrivateBase64Key(const unsigned char* const IN msg, size_t msg_len,
-		const unsigned char* const IN b64_key)
+int_fast8_t EMSCRIPTEN_KEEPALIVE _diode_SignString_wED25519PrivateBase64Key(const unsigned char* const IN msg, size_t msg_len,
+		const unsigned char* const IN prv_key_str, uint_least32_t prv_key_chars,
+		uint_least8_t** OUT dig)
 {
-	if((!msg) | (!b64_key))
+	if((!msg) | (!prv_key_str) | (!dig))
 	{
-		_DIODE_DEBUG_PRINT("A NULL pointer was given as the msg or b64_key!\n");
-		return NULL;
+		_DIODE_DEBUG_PRINT("A NULL pointer was given as the msg, key or digest string pointer!\n");
+		return -1;
 	}
 
-	uint_least8_t* OUT sig_str = NULL;
-	uint_least8_t* mem;
+	if(!prv_key_chars)
+	{
+		prv_key_chars = strlen((char*)prv_key_str);
+	}
 
+	uint_least8_t* mem;
 	EVP_PKEY* prv_key = NULL;
 
 	/* Base64 key string to binary conversion */
-	int_fast32_t n_bytes = _diode_AmountOfBytesFromB64Str(b64_key, 0);
+	int_fast32_t n_bytes = _diode_AmountOfBytesFromB64Str(prv_key_str, prv_key_chars);
+	
 	if(n_bytes == -1)
 	{
-		_DIODE_DEBUG_PRINT("Invalid b64 key given!!!\n");
-		return NULL;
+		_DIODE_DEBUG_PRINT("Invalid private key given!!!\n");
+		return -2;
 	}
 
+	/* Buffer for key binary */
 	mem = malloc(n_bytes);
 	if(!mem)
 	{
-		_DIODE_DEBUG_PRINT("Couldn't allocate key memory!\n");
-		return NULL;
+		_DIODE_DEBUG_PRINT("Couldn't allocate private key memory!\n");
+		return -3;
 	}
 
-	if(_diode_Base64StrToBinary(b64_key, mem, 0))
+	if(_diode_Base64StrToBinary(prv_key_str, mem, prv_key_chars))
 	{
-		_DIODE_DEBUG_PRINT("Couldn't convert b64 key to binary!\n");
+		_DIODE_DEBUG_PRINT("Couldn't convert private key to binary!\n");
 		free(mem);
-		return NULL;
+		return -4;
 	}
 
-	/* creating Key and CTX objects */
+	/* Creating Key and CTX objects */
 	prv_key = EVP_PKEY_new_raw_private_key(EVP_PKEY_ED25519, NULL, mem, n_bytes);
 	if(!prv_key)
 	{
 		_DIODE_DEBUG_PRINT("Couldn't create EVP_PKEY object!\n");
 		free(mem);
-		return NULL;
+		return -5;
 	}
 
 	EVP_MD_CTX* md_ctx = EVP_MD_CTX_new();
@@ -69,77 +87,77 @@ uint_least8_t* EMSCRIPTEN_KEEPALIVE _diode_SignString_wED25519PrivateBase64Key(c
 		_DIODE_DEBUG_PRINT("Couldn't create EVP_MD_CTX object!\n");
 		free(mem);
 		EVP_PKEY_free(prv_key);
-		return NULL;
+		return -6;
 	}
-
 
 	/* Initialization for signing */
 	if(!msg_len)
 		msg_len = strlen((char*)msg);
 	if(!EVP_DigestSignInit(md_ctx, NULL, NULL, NULL, prv_key))
 	{
-		_DIODE_DEBUG_PRINT("Couldn't Initialize CTX!\n");
+		_DIODE_DEBUG_PRINT("Couldn't initialize CTX!\n");
 		free(mem);
 		EVP_PKEY_free(prv_key);
 		EVP_MD_CTX_free(md_ctx);
-		return NULL;
+		return -7;
 	}
 
-	/* Calculate the required size for the signature by passing a NULL */
-	size_t sig_len = 0;
-	if(!EVP_DigestSign(md_ctx, NULL, &sig_len, msg, msg_len))
+	/* Calculate the required size for the digest by passing a NULL */
+	size_t dig_len = 0;
+	if(!EVP_DigestSign(md_ctx, NULL, &dig_len, msg, msg_len))
 	{
-		_DIODE_DEBUG_PRINT("Couldn't get signature size!\n");
+		_DIODE_DEBUG_PRINT("Couldn't get digest size!\n");
 		free(mem);
 		EVP_PKEY_free(prv_key);
 		EVP_MD_CTX_free(md_ctx);
-		return NULL;
+		return -8;
 	}
 
 	free(mem);
-	mem = OPENSSL_zalloc(sig_len);	
+	mem = OPENSSL_zalloc(dig_len);
 	if(!mem)
 	{
-		_DIODE_DEBUG_PRINT("Couldn't allocate signature memory!\n");
+		_DIODE_DEBUG_PRINT("Couldn't allocate digest memory!\n");
 		EVP_PKEY_free(prv_key);
 		EVP_MD_CTX_free(md_ctx);
-		return NULL;
+		return -9;
 	}
 
 	/* Signing */
-	if(!EVP_DigestSign(md_ctx, mem, &sig_len, msg, msg_len))
+	if(!EVP_DigestSign(md_ctx, mem, &dig_len, msg, msg_len))
 	{
-		_DIODE_DEBUG_PRINT("Couldn't Sign!\n");
+		_DIODE_DEBUG_PRINT("Couldn't sign!\n");
 		EVP_PKEY_free(prv_key);
 		EVP_MD_CTX_free(md_ctx);
 		OPENSSL_free(mem);
-		return NULL;
+		return -10;
 	}
 
-	sig_str = malloc(_DIODE_BASE64STR_SIZE_FROM_NBYTES(sig_len) + 1);
-	if(!sig_str)
+	*dig = malloc(_DIODE_BASE64STR_SIZE_FROM_NBYTES(dig_len) + 1);
+	if(!(*dig))
 	{
-		_DIODE_DEBUG_PRINT("Couldn't Sign!\n");
+		_DIODE_DEBUG_PRINT("Couldn't allocate memory for digest string!\n");
 		EVP_PKEY_free(prv_key);
 		EVP_MD_CTX_free(md_ctx);
 		OPENSSL_free(mem);
-		return NULL;
+		return -11;
 	}
 
-	/* signature to b64 conversion */
-	if(_diode_BinaryToBase64Str(mem, sig_len, sig_str))
+	/* Signature to b64 conversion */
+	if(_diode_BinaryToBase64Str(mem, dig_len, *dig))
 	{
 		_DIODE_DEBUG_PRINT("Couldn't convert signature binary to b64 string!\n");
 		EVP_PKEY_free(prv_key);
 		EVP_MD_CTX_free(md_ctx);
 		OPENSSL_free(mem);
-		return NULL;
+		free(*dig);
+		return -12;
 	}
 
 	EVP_PKEY_free(prv_key);
 	EVP_MD_CTX_free(md_ctx);
 	OPENSSL_free(mem);
-	return sig_str;
+	return 0;
 }
 
 
@@ -147,8 +165,8 @@ uint_least8_t* EMSCRIPTEN_KEEPALIVE _diode_SignString_wED25519PrivateBase64Key(c
  * All strings must be null terminated.
  * returns 1 on success, 0 on failure, negative value for an error
  *
- * Error Codes:
- * -1  Either sig, b64_key or msg was given as a NULL pointer.
+ * error codes:
+ * -1  either sig, b64_key or msg was given as a null pointer.
  * -2  Couldn't get size of memory for b64 key.
  * -3  Couldn't allocate memory for key.
  * -4  Couldn't convert b64 key to binary.
@@ -159,6 +177,7 @@ uint_least8_t* EMSCRIPTEN_KEEPALIVE _diode_SignString_wED25519PrivateBase64Key(c
  * -9  Couldn't create EVP_MD_CTX object.
  * -10 Couldn't Initialize context for signing.
  * -11 Couldn't perform the verifiction.
+ * -12 Couldn't allocate memory for signature string.
  */
 int_fast8_t EMSCRIPTEN_KEEPALIVE _diode_VerifySig_wED25519PublicBase64Key(const unsigned char* const IN sig, const unsigned char* const IN b64_key,
 		const unsigned char* const IN msg)

@@ -959,6 +959,16 @@ int_fast8_t EMSCRIPTEN_KEEPALIVE _diode_ED25519_Keygen(uint_least8_t** OUT pub_k
 #define crypto_kem_mceliece460896f_ref_BYTES 32
 */
 
+#ifndef __EMSCRIPTEN_PTHREADS__
+int_fast8_t EMSCRIPTEN_KEEPALIVE _diode_mceliece460896f_Keygen(uint_least8_t** OUT pub_key_str, uint_least32_t* OUT pub_n_chars,
+                uint_least8_t** OUT prv_key_str, uint_least32_t* OUT prv_n_chars)
+{
+	*pub_key_str = "AAAAtttt";
+	*prv_key_str = "Threads";
+
+	return 0;
+}
+#else
 int_fast8_t EMSCRIPTEN_KEEPALIVE _diode_mceliece460896f_Keygen(uint_least8_t** OUT pub_key_str, uint_least32_t* OUT pub_n_chars,
                 uint_least8_t** OUT prv_key_str, uint_least32_t* OUT prv_n_chars)
 {
@@ -1092,4 +1102,4 @@ int_fast8_t EMSCRIPTEN_KEEPALIVE _diode_mceliece460896f_Keygen(uint_least8_t** O
 
 	return 0;
 }
-
+#endif /* __EMSCRIPTEN_PTHREADS__ */

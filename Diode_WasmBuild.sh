@@ -47,7 +47,7 @@ cd dependacies
 	cd openssl
 	patch -N -p1 <"$MAIN_WD/patches/rand_lib.patch"
 
-	export CFLAGS="-I$MAIN_WD/include/ -pthread"
+	export CFLAGS="-I$MAIN_WD/include/ -pthread $OPTIMIZE"
 	export LFLAGS="-pthread"
 
 	# no-autoerrinit removes the error strings, smaller static link lib but worst for debugging
@@ -78,7 +78,7 @@ cd dependacies
 	export SRC_DIRS=""
 	export INC_DIRS=""
 	export LFLAGS="-pthread"
-	export CFLAGS="-pthread"
+	export CFLAGS="-pthread $OPTIMIZE"
 
 
 	#GF2X
@@ -154,8 +154,8 @@ export SRC_DIRS="$MAIN_WD/src $MCELIECE_PWD $MCELIECE_PWD/nist $MCELIECE_PWD/sub
 
 export INC_DIRS="$MAIN_WD/dependacies/include $MCELIECE_PWD $MCELIECE_PWD/nist $MCELIECE_PWD/subroutines $MAIN_WD/include "
 
-
-export LFLAGS="-pthread -s LLD_REPORT_UNDEFINED -L$MAIN_WD/dependacies/lib -s \"EXPORTED_RUNTIME_METHODS=['ccall', 'cwrap', 'UTF8ToString', 'getValue', 'setValue']\" -s \"EXPORTED_FUNCTIONS=[$EXPORTED_FUNCS]\" -lssl -lkeccak -lcrypto -ldl "
+# -sPTHREAD_POOL_SIZE=2  -pthread
+export LFLAGS=" -s LLD_REPORT_UNDEFINED -L$MAIN_WD/dependacies/lib -s \"EXPORTED_RUNTIME_METHODS=['ccall', 'cwrap', 'UTF8ToString', 'getValue', 'setValue']\" -s \"EXPORTED_FUNCTIONS=[$EXPORTED_FUNCS]\" -lssl -lkeccak -lcrypto -ldl "
 
 KATNUM_I=$(cat $MCELIECE_PWD/KATNUM)
 
@@ -172,6 +172,7 @@ patch -N -p1 <"$MAIN_WD/patches/decrypt.c.patch"
 patch -N -p1 <"$MAIN_WD/patches/pk_gen.c.patch"
 patch -N -p1 <"$MAIN_WD/patches/root.c.patch"
 patch -N -p1 <"$MAIN_WD/patches/sk_gen.c.patch"
+patch -N -p1 <"$MAIN_WD/patches/synd.c.patch"
 
 if [ "$MAKE_CLEAN" = "true" ] ; then
 	emmake make -j4 -C$MCELIECE_PWD -f$MAIN_WD/Makefile clean $MAKE_TRACE

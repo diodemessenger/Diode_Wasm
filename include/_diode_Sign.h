@@ -5,16 +5,29 @@
 #include <emscripten.h>
 
 /* Generates a signature from a given string of a private key in base64 chars and a message,
- * Takes in the string (msg) to make the signature , private key string (b64_key),
- * and allocates a string pointer, to be returned by the function, with the signature.
- * If the msg_len is given to be 0, then msg is expected to be null terminated to find the size.
- * key bits lenght MUST be divisable by 8.
+ * Takes in the string (msg) to make the signature , private key string (prv_key_str),
+ * and allocates a string stored in *sig, with the signature.
+ * If the msg_len/prv_key_chars is given to be 0, then msg/prv_key_str is expected to be null terminated to find the size.
  *
  * free() must be called to free the returned string memory by the caller.
- * If the singning failed NULL is returned.
+ * 
+ * error codes:
+ * -1  msg, prv_key_str or sig was given as a NULL pointer.
+ * -2  Invalid private key given.
+ * -3  Couldn't allocate private key memory.
+ * -4  Couldn't convert private key to binary.
+ * -5  Couldn't create EVP_PKEY object.
+ * -6  Couldn't create EVP_MD_CTX object.
+ * -7  Couldn't initialize CTX.
+ * -8  Couldn't get signature size.
+ * -9  Couldn't allocate signature memory.
+ * -10 Couldn't sign.
+ * -11 Couldn't allocate memory for signature string.
+ * -12 Couldn't convert signature binary to b64 string.
  */
-extern uint_least8_t* EMSCRIPTEN_KEEPALIVE _diode_SignString_wED25519PrivateBase64Key(const unsigned char* const IN msg, size_t msg_len,
-                const unsigned char* const IN b64_key);
+extern int_fast8_t EMSCRIPTEN_KEEPALIVE _diode_SignString_wED25519PrivateBase64Key(const unsigned char* const IN msg, size_t msg_len,
+		const unsigned char* const IN prv_key_str, uint_least32_t prv_key_chars,
+		uint_least8_t** OUT sig);
 
 /* The functions verifies the given base64 encoded signature (sig) against the given message (msg) with the base64 encoded (public) key (b64_key).
  * All strings must be null terminated.

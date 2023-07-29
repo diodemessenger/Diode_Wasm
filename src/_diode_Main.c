@@ -47,11 +47,20 @@ int main(void)
 	printf("PUB chars: %d | PRV chars: %d\n", pub_chars, prv_chars);
 	printf("PUB ED25519 KEY: %s\n", *pub_str);
 	printf("PRV ED25519 KEY: %s\n", *prv_str);
-	uint_least8_t* dig = _diode_SignString_wED25519PrivateBase64Key(msg, 0, *prv_str);
-	if(dig == NULL)
+
+	unsigned char** dig = malloc(sizeof(*dig));
+	int_least8_t sign_error = _diode_SignString_wED25519PrivateBase64Key(msg, 0, *prv_str, 0, dig);
+	if(sign_error)
+	{
+		free(dig);
 		return -1;
-	printf("Digest: %s\n", dig);
-	printf("Verify Success? : %d\n", _diode_VerifySig_wED25519PublicBase64Key(dig, *pub_str, msg));
+	}
+	printf("Digest: %s\n", *dig);
+	printf("Verify Success? : %d\n", _diode_VerifySig_wED25519PublicBase64Key(*dig, *pub_str, msg));
+	free(*dig);
+	free(dig);
+
+
 	puts("Now RSA!");
 	if(_diode_RSA_Keygen(rsa_n, &n_chars, rsa_e, &e_chars, rsa_d, &d_chars, NULL, NULL, 2048, 3, 73673))
 	{
@@ -136,7 +145,6 @@ int main(void)
 	_diode_Close();
 	
 	puts("main() is done!\n");
-	
-	*/
+	*/	
 	return 0;
 }
